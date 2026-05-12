@@ -2,60 +2,38 @@
 
 import { ReactNode } from "react";
 
+const RAISED = "border border-t-white border-l-white border-b-[#404040] border-r-[#404040]";
+const SUNKEN = "border border-t-[#404040] border-l-[#404040] border-b-white border-r-white";
+
 export function TitleBar({ title }: { title: string }) {
   return (
-    <div className="flex items-center justify-between bg-[#000080] text-white px-1 h-[22px] select-none">
+    <div className="flex items-center justify-between bg-[#000080] py-[3px] px-1 select-none">
       <div className="flex items-center gap-1">
-        <div className="w-4 h-4 bg-white text-[#000080] flex items-center justify-center font-bold text-[11px] leading-none">
+        <div
+          className={`w-4 h-[14px] flex items-center justify-center bg-[#C0C0C0] font-chrome font-bold text-[9px] leading-[12px] text-[#0000A0] ${RAISED}`}
+        >
           W
         </div>
-        <span className="font-chrome text-[11px] tracking-tight">{title}</span>
+        <span className="font-chrome font-bold text-[11px] leading-[14px] text-white">
+          {title}
+        </span>
       </div>
       <div className="flex items-center gap-[2px]">
-        <Win95Button square label="_" />
-        <Win95Button square label="□" />
-        <Win95Button square label="×" />
+        <TitleBarButton glyph="_" />
+        <TitleBarButton glyph="□" />
+        <TitleBarButton glyph="×" />
       </div>
     </div>
   );
 }
 
-export function Win95Button({
-  label,
-  square,
-  active,
-  onClick,
-  children,
-  className,
-  title,
-}: {
-  label?: string;
-  square?: boolean;
-  active?: boolean;
-  onClick?: () => void;
-  children?: ReactNode;
-  className?: string;
-  title?: string;
-}) {
+function TitleBarButton({ glyph }: { glyph: string }) {
   return (
-    <button
-      onClick={onClick}
-      title={title}
-      className={`
-        ${square ? "w-4 h-4" : "px-2 h-[20px]"}
-        bg-[#C0C0C0] text-black text-[11px] font-chrome
-        flex items-center justify-center leading-none
-        ${
-          active
-            ? "shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF,inset_2px_2px_0_#808080,inset_-2px_-2px_0_#DFDFDF]"
-            : "shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040,inset_2px_2px_0_#DFDFDF,inset_-2px_-2px_0_#808080]"
-        }
-        active:shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF,inset_2px_2px_0_#808080,inset_-2px_-2px_0_#DFDFDF]
-        ${className ?? ""}
-      `}
+    <div
+      className={`w-[18px] h-4 flex items-end justify-center pb-px bg-[#C0C0C0] text-black font-chrome font-bold text-[11px] leading-none ${RAISED}`}
     >
-      {children ?? label}
-    </button>
+      {glyph}
+    </div>
   );
 }
 
@@ -64,7 +42,7 @@ const MENU_ITEMS = [
   "Edit",
   "View",
   "Insert",
-  "Format",
+  "F ormat",
   "Tools",
   "Desk",
   "Chat",
@@ -74,18 +52,19 @@ const MENU_ITEMS = [
 
 export function MenuBar({ activeMenu }: { activeMenu?: string }) {
   return (
-    <div className="flex items-center bg-[#C0C0C0] h-[23px] px-1 border-b border-[#808080] select-none">
+    <div className="flex items-center bg-[#C0C0C0] py-[2px] px-1 border-b border-[#808080] select-none">
       {MENU_ITEMS.map((item) => {
         const active = item === activeMenu;
         return (
           <div
             key={item}
-            className={`px-2 py-0.5 text-[11px] font-chrome leading-none ${
-              active ? "bg-[#000080] text-white" : "text-black hover:bg-[#000080] hover:text-white"
+            className={`py-[2px] px-2 font-chrome text-[11px] leading-[14px] cursor-default ${
+              active
+                ? "bg-[#000080] text-white"
+                : "text-black hover:bg-[#000080] hover:text-white"
             }`}
           >
-            <span className="underline">{item.charAt(0)}</span>
-            {item.slice(1)}
+            {item}
           </div>
         );
       })}
@@ -103,7 +82,7 @@ export function Toolbar({
   chatOpen: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1 bg-[#C0C0C0] px-1 py-[3px] h-[29px] border-b border-[#808080]">
+    <div className="flex items-center bg-[#C0C0C0] py-[3px] px-[6px] gap-1 border-b border-[#808080]">
       <ToolGroup>
         <ToolIcon glyph="N" title="New" />
         <ToolIcon glyph="O" title="Open" />
@@ -116,37 +95,28 @@ export function Toolbar({
         <ToolIcon glyph="▭" title="Paste" />
       </ToolGroup>
       <Divider />
-      <Select width={148} value="Heading 1" />
-      <Select width={128} value="Times New Roman" />
-      <Select width={44} value="12" />
+      <Dropdown width={148} valueWidth={132} value="Heading 1" />
+      <Dropdown width={128} valueWidth={112} value="Times New Roman" />
+      <Dropdown width={44} valueWidth={28} value="12" />
       <Divider />
       <ToolGroup>
-        <ToolIcon glyph="B" bold title="Bold" />
-        <ToolIcon glyph="I" italic title="Italic" />
-        <ToolIcon glyph="U" underline title="Underline" />
+        <ToolIcon glyph="B" bold serif title="Bold" />
+        <ToolIcon glyph="I" italic serif title="Italic" />
+        <ToolIcon glyph="U" underline serif title="Underline" />
       </ToolGroup>
       <Divider />
-      <Win95Button onClick={onNewNote} className="!h-[22px]">
-        <span className="text-[#008000] mr-1">+</span> New note
-      </Win95Button>
-      <Win95Button onClick={onChat} active={chatOpen} className="!h-[22px]">
-        Chat...
-      </Win95Button>
+      <ToolbarButton onClick={onNewNote} label="+ New note" />
+      <ToolbarButton onClick={onChat} active={chatOpen} label="Chat..." />
     </div>
   );
 }
 
 function ToolGroup({ children }: { children: ReactNode }) {
-  return <div className="flex items-center gap-[2px]">{children}</div>;
+  return <div className="flex items-center gap-px">{children}</div>;
 }
 
 function Divider() {
-  return (
-    <div className="mx-1 h-[22px] flex">
-      <div className="w-px h-full bg-[#808080]" />
-      <div className="w-px h-full bg-[#FFFFFF]" />
-    </div>
-  );
+  return <div className="w-px h-[22px] bg-[#808080] shrink-0" />;
 }
 
 function ToolIcon({
@@ -154,63 +124,98 @@ function ToolIcon({
   bold,
   italic,
   underline,
+  serif,
   title,
 }: {
   glyph: string;
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
+  serif?: boolean;
   title?: string;
 }) {
   return (
-    <Win95Button title={title} className="!w-[22px] !h-[22px] !px-0 pixelated">
+    <button
+      title={title}
+      className={`w-[22px] h-[22px] flex items-center justify-center bg-[#C0C0C0] text-black ${RAISED} active:border-t-[#404040] active:border-l-[#404040] active:border-b-white active:border-r-white`}
+    >
       <span
-        className={`text-[12px] leading-none pixelated ${bold ? "font-bold" : ""} ${
-          italic ? "italic" : ""
-        } ${underline ? "underline" : ""}`}
+        className={`${
+          serif
+            ? "font-body text-[13px] leading-4"
+            : "font-chrome text-[11px] leading-none"
+        } ${bold ? "font-bold" : ""} ${italic ? "italic" : ""} ${
+          underline ? "underline" : ""
+        }`}
       >
         {glyph}
       </span>
-    </Win95Button>
+    </button>
   );
 }
 
-function Select({ width, value }: { width: number; value: string }) {
+function Dropdown({
+  width,
+  valueWidth,
+  value,
+}: {
+  width: number;
+  valueWidth: number;
+  value: string;
+}) {
   return (
-    <div
-      style={{ width }}
-      className="flex items-stretch h-[20px] bg-white shadow-[inset_1px_1px_0_#808080,inset_-1px_-1px_0_#FFFFFF,inset_2px_2px_0_#404040,inset_-2px_-2px_0_#DFDFDF] text-[11px] font-chrome"
-    >
-      <span className="flex-1 truncate px-1 flex items-center">{value}</span>
-      <button
-        type="button"
-        tabIndex={-1}
-        className="w-[16px] flex items-center justify-center bg-[#C0C0C0] shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040,inset_2px_2px_0_#DFDFDF,inset_-2px_-2px_0_#808080] text-[8px] leading-none"
+    <div style={{ width }} className="flex items-stretch h-5 shrink-0">
+      <div
+        style={{ width: valueWidth }}
+        className={`flex items-center py-[2px] px-[6px] bg-white text-black font-chrome text-[11px] leading-[14px] truncate shrink-0 ${SUNKEN}`}
+      >
+        <span className="truncate">{value}</span>
+      </div>
+      <div
+        className={`w-4 flex items-center justify-center bg-[#C0C0C0] text-black text-[8px] leading-none shrink-0 ${RAISED}`}
       >
         ▼
-      </button>
+      </div>
     </div>
   );
 }
 
-export function Ruler() {
-  const inches = 16;
+function ToolbarButton({
+  label,
+  onClick,
+  active,
+}: {
+  label: string;
+  onClick?: () => void;
+  active?: boolean;
+}) {
   return (
-    <div className="bg-[#C0C0C0] h-[18px] flex items-center px-3 border-b border-[#808080] overflow-hidden">
-      <div className="bg-white flex-1 h-[14px] relative shadow-[inset_1px_1px_0_#808080,inset_-1px_-1px_0_#FFFFFF]">
-        <div className="absolute inset-0 flex">
-          {Array.from({ length: inches }).map((_, i) => (
-            <div key={i} className="flex-1 relative">
-              <div className="absolute left-0 top-0 bottom-0 w-px bg-[#404040]" />
-              <div className="absolute left-1/4 top-1/2 bottom-0 w-px bg-[#808080]" />
-              <div className="absolute left-1/2 top-[3px] bottom-0 w-px bg-[#404040]" />
-              <div className="absolute left-3/4 top-1/2 bottom-0 w-px bg-[#808080]" />
-              <span className="absolute left-0 top-0 text-[8px] text-[#404040] leading-none pl-[3px] font-chrome">
-                {i + 1}
-              </span>
-            </div>
-          ))}
-        </div>
+    <button
+      onClick={onClick}
+      className={`flex items-center justify-center py-[3px] px-[10px] h-[22px] bg-[#C0C0C0] text-black font-chrome text-[11px] leading-[14px] cursor-default ${
+        active ? SUNKEN : RAISED
+      } active:border-t-[#404040] active:border-l-[#404040] active:border-b-white active:border-r-white`}
+    >
+      {label}
+    </button>
+  );
+}
+
+const RULER_TEXT =
+  "·1·····|·····2·····|·····3·····|·····4·····|·····5·····|·····6·····|·····7·····|·····8·····|·····9·····|·····";
+
+export function Ruler() {
+  return (
+    <div className="flex items-center bg-[#C0C0C0] h-[18px] py-[2px] px-[60px] border-b border-[#808080] shrink-0">
+      <div
+        className={`flex-1 h-3 flex items-center px-[2px] bg-white ${SUNKEN}`}
+      >
+        <span
+          className="font-chrome text-[8px] leading-[10px] text-[#404040] whitespace-pre"
+          style={{ letterSpacing: "0.15em" }}
+        >
+          {RULER_TEXT}
+        </span>
       </div>
     </div>
   );
@@ -234,7 +239,7 @@ export function StatusBar({
   saved: boolean;
 }) {
   return (
-    <div className="flex items-stretch bg-[#C0C0C0] h-[22px] border-t border-[#FFFFFF] text-[11px] font-chrome px-[2px] py-[2px] gap-[2px]">
+    <div className="flex items-center bg-[#C0C0C0] h-5 py-[2px] px-1 gap-1 border-t border-white shrink-0">
       <StatusCell>Page {page}</StatusCell>
       <StatusCell>Sec {section}</StatusCell>
       <StatusCell>
@@ -263,7 +268,7 @@ function StatusCell({
 }) {
   return (
     <div
-      className={`px-2 flex items-center shadow-[inset_1px_1px_0_#808080,inset_-1px_-1px_0_#FFFFFF] ${
+      className={`py-px px-[6px] font-chrome text-[11px] leading-[14px] ${SUNKEN} ${
         muted ? "text-[#808080]" : "text-black"
       } ${strong ? "font-bold" : ""}`}
     >
@@ -271,3 +276,5 @@ function StatusCell({
     </div>
   );
 }
+
+export const Win95Button = ToolbarButton;

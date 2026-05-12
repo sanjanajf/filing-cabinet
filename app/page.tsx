@@ -232,7 +232,10 @@ export default function Page() {
   }, [handleNewNote]);
 
   return (
-    <div className="flex flex-col w-[1440px] h-[900px] overflow-hidden bg-[#C0C0C0] font-sans text-black shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#000000,inset_2px_2px_0_#DFDFDF,inset_-2px_-2px_0_#808080]">
+    <div
+      className="flex flex-col w-[1408px] h-[868px] overflow-hidden bg-[#C0C0C0] font-chrome text-black border-2 border-t-white border-l-white border-b-[#404040] border-r-[#404040]"
+      style={{ boxShadow: "1px 1px 0 #000000" }}
+    >
       <TitleBar title="Filing cabinet" />
       <MenuBar activeMenu="Desk" />
       <Toolbar
@@ -242,67 +245,67 @@ export default function Page() {
       />
       <Ruler />
 
-      <div className="flex-1 flex bg-[#C0C0C0] overflow-hidden">
-        <div className="flex-1 p-2 overflow-hidden flex">
-          <div className="flex-1 bg-white shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF,inset_2px_2px_0_#808080,inset_-2px_-2px_0_#DFDFDF] overflow-auto">
-            {editingFile ? (
-              <Editor slug={editingFile} onClose={() => setEditingFile(null)} />
-            ) : (
-              <div className="max-w-[980px] mx-auto px-10 py-6">
-                {loadError && (
-                  <div className="mb-3 bg-[#FFFF66] border border-black px-2 py-1 text-[11px] font-sans">
-                    {loadError}
-                  </div>
-                )}
-                {!data && !loadError && (
-                  <div className="text-[#808080] italic text-[13px] font-['Times_New_Roman',serif]">
-                    loading…
-                  </div>
-                )}
-                {data && (
-                  <>
-                    <DocHeader
-                      docTitle={data.meta.docTitle}
-                      byline={BYLINE}
-                      date={formatDate(now)}
-                      rootCrumb="C:\files\"
-                      openCrumb={folder?.slug ?? null}
-                      stats={data.stats}
-                      onEditTitle={handleEditTitle}
-                      onClickRoot={() => setOpenSlug(null)}
-                    />
-                    <FolderGrid
-                      folders={data.folders}
-                      openFolder={openSlug}
-                      onOpen={handleOpenFolder}
-                      onRenameFolder={handleRenameFolder}
-                      onRenameCount={handleRenameCount}
-                      onNewFolder={handleNewFolder}
-                    />
-                    <div className="border-t border-dotted border-[#808080]" />
-                    <OpenFolder
-                      folder={folder}
-                      files={data.files}
-                      totalLines={totalLinesInOpen}
-                      lastOpenedLabel="2 min ago"
-                      onOpenFile={(rel) => setEditingFile(rel)}
-                      onRenameFile={handleRenameFile}
-                      onEditSummary={handleEditSummary}
-                      onToggleHighlight={handleToggleHighlight}
-                      onNewNote={handleNewNote}
-                    />
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {chatOpen && (
-            <div className="w-[320px] ml-2 shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040,inset_2px_2px_0_#DFDFDF,inset_-2px_-2px_0_#808080]">
-              <Chat onClose={() => setChatOpen(false)} />
+      <div className="flex-1 flex gap-4 bg-[#808080] py-4 px-6 overflow-hidden">
+        <div
+          className="flex-1 flex flex-col bg-white overflow-hidden"
+          style={{ boxShadow: "2px 2px 0 #00000044" }}
+        >
+          {editingFile ? (
+            <Editor slug={editingFile} onClose={() => setEditingFile(null)} />
+          ) : (
+            <div className="flex-1 flex flex-col py-5 px-8 gap-[14px] overflow-auto">
+              {loadError && (
+                <div className="bg-[#FFFF66] border border-black px-2 py-1 font-chrome text-[11px]">
+                  {loadError}
+                </div>
+              )}
+              {!data && !loadError && (
+                <div className="text-[#808080] italic text-[13px] font-body">
+                  loading…
+                </div>
+              )}
+              {data && (
+                <>
+                  <DocHeader
+                    docTitle={data.meta.docTitle}
+                    byline={BYLINE}
+                    date={formatDate(now)}
+                    rootCrumb="C:\files\"
+                    openCrumb={folder?.slug ?? null}
+                    stats={data.stats}
+                    onEditTitle={handleEditTitle}
+                    onClickRoot={() => setOpenSlug(null)}
+                  />
+                  <FolderGrid
+                    folders={data.folders}
+                    openFolder={openSlug}
+                    onOpen={handleOpenFolder}
+                    onRenameFolder={handleRenameFolder}
+                    onRenameCount={handleRenameCount}
+                    onNewFolder={handleNewFolder}
+                  />
+                  <OpenFolder
+                    folder={folder}
+                    files={data.files}
+                    totalLines={totalLinesInOpen}
+                    lastOpenedLabel="2 min ago"
+                    onOpenFile={(rel) => setEditingFile(rel)}
+                    onRenameFile={handleRenameFile}
+                    onEditSummary={handleEditSummary}
+                    onToggleHighlight={handleToggleHighlight}
+                    onNewNote={handleNewNote}
+                  />
+                </>
+              )}
             </div>
           )}
         </div>
+
+        {chatOpen && (
+          <div className="w-[320px] shrink-0">
+            <Chat onClose={() => setChatOpen(false)} />
+          </div>
+        )}
       </div>
 
       <StatusBar

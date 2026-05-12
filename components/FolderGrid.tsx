@@ -21,7 +21,7 @@ export function FolderGrid({
   onNewFolder,
 }: Props) {
   return (
-    <div className="flex flex-wrap gap-2 py-4">
+    <div className="flex flex-wrap py-[18px] gap-2">
       {folders.map((f) => (
         <FolderTile
           key={f.slug}
@@ -52,16 +52,17 @@ function FolderTile({
 }) {
   return (
     <div
-      className={`flex flex-col items-center w-24 py-1 px-1 gap-1 shrink-0 cursor-pointer ${
-        selected ? "bg-[#000080] border border-dotted border-white" : ""
+      className={`flex flex-col items-center w-24 gap-1 shrink-0 cursor-pointer ${
+        selected
+          ? "py-1 px-[2px] bg-[#000080] border border-dotted border-white"
+          : "py-[6px] px-1"
       }`}
       onDoubleClick={onOpen}
     >
       <div className="w-16 h-[52px] relative shrink-0 pixelated" onClick={onOpen}>
-        <div className="top-1 left-0 w-[28px] h-[8px] absolute bg-[#FFE600] border-[2px] border-black border-b-0" />
-        <div className="top-[8px] left-0 w-16 h-[44px] absolute bg-[#FFE600] border-[2px] border-black shadow-[2px_2px_0_#000000]" />
-        <div className="top-[10px] left-[2px] w-[60px] h-px absolute bg-[#FFFFFF]" />
-        <div className="top-[11px] left-[2px] w-[60px] h-px absolute bg-[#FFFFAA]" />
+        <div className="absolute top-1 left-[2px] w-[26px] h-2 bg-[#FFE600] border-2 border-black" />
+        <div className="absolute top-[10px] left-0 w-16 h-[42px] bg-[#FFE600] border-2 border-black shadow-[2px_2px_0_#00000055]" />
+        <div className="absolute top-3 left-1 w-14 h-px bg-[#FFFFAA]" />
       </div>
       <InlineEdit
         value={folder.name}
@@ -78,7 +79,7 @@ function FolderTile({
         ariaLabel={`Edit ${folder.name} count label`}
         selectAllOnFocus
         className={`font-chrome text-[9px] leading-[12px] px-1 ${
-          selected ? "text-[#C0C0C0]" : "text-[#808080]"
+          selected ? "text-white" : "text-[#808080]"
         }`}
       />
     </div>
@@ -89,12 +90,12 @@ function NewFolderTile({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center w-24 py-1 px-1 gap-1 shrink-0"
+      className="flex flex-col items-center w-24 py-[6px] px-1 gap-1 shrink-0"
     >
       <div className="w-16 h-[52px] relative shrink-0 pixelated">
-        <div className="top-1 left-0 w-[28px] h-[8px] absolute bg-white border-[2px] border-dashed border-[#808080] border-b-0" />
-        <div className="top-[8px] left-0 w-16 h-[44px] flex items-center justify-center absolute bg-white border-[2px] border-dashed border-[#808080]">
-          <span className="font-chrome text-[#808080] text-2xl leading-none">+</span>
+        <div className="absolute top-1 left-[2px] w-[26px] h-2 bg-white border-2 border-dashed border-[#808080]" />
+        <div className="absolute top-[10px] left-0 w-16 h-[42px] flex items-center justify-center bg-white border-2 border-dashed border-[#808080]">
+          <span className="font-chrome text-[#808080] text-[30px] leading-none">+</span>
         </div>
       </div>
       <span className="text-center font-chrome italic text-[#808080] text-[11px] leading-[13px]">

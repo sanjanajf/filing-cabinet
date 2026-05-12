@@ -29,41 +29,37 @@ export function OpenFolder({
   if (!folder) return null;
 
   return (
-    <div className="pt-4">
-      <div className="flex items-center gap-2 text-[11px] font-sans text-[#808080]">
-        <FolderGlyph />
-        <span>
+    <div className="flex flex-col pt-4 px-1 gap-[10px] border-t border-dashed border-[#808080]">
+      <div className="flex items-baseline gap-2">
+        <span className="font-body font-bold text-black text-[16px] leading-5">
+          <FolderGlyph />
+          {"   "}
+          {folder.slug}\
+        </span>
+        <span className="font-chrome text-[11px] leading-[14px] text-[#808080]">
           — {files.length} files, {totalLines.toLocaleString()} lines · last
           opened {lastOpenedLabel}
         </span>
       </div>
 
-      <div className="text-black mt-2 ml-1">
-        <div className="font-['Times_New_Roman',serif] text-[14px] underline decoration-[1px] underline-offset-2">
-          {folder.slug}\
-        </div>
-        <div className="mt-2 space-y-3">
-          {files.map((f) => (
-            <FileRow
-              key={f.relPath}
-              file={f}
-              onOpen={() => onOpenFile(f.relPath)}
-              onRename={(name) => onRenameFile(f.relPath, name)}
-              onEditSummary={(s) => onEditSummary(f.relPath, s)}
-              onToggleHighlight={() => onToggleHighlight(f.relPath)}
-            />
-          ))}
-        </div>
-        <div className="mt-5 font-sans text-[11px] italic text-[#808080]">
-          —{" "}
+      <div className="flex flex-col pl-5 gap-[10px]">
+        {files.map((f) => (
+          <FileRow
+            key={f.relPath}
+            file={f}
+            onOpen={() => onOpenFile(f.relPath)}
+            onRename={(name) => onRenameFile(f.relPath, name)}
+            onEditSummary={(s) => onEditSummary(f.relPath, s)}
+            onToggleHighlight={() => onToggleHighlight(f.relPath)}
+          />
+        ))}
+        <div className="pt-[6px]">
           <button
             onClick={onNewNote}
-            className="underline hover:text-[#000080]"
+            className="font-body italic text-[12px] leading-4 text-[#808080] hover:text-[#000080]"
           >
-            [ + new note in {folder.slug}\ ]
-          </button>{" "}
-          <span className="not-italic"> | </span>
-          <span>Ctrl+N</span>
+            — [ + new note in {folder.slug}\ ] | Ctrl+N
+          </button>
         </div>
       </div>
     </div>
@@ -85,8 +81,8 @@ function FileRow({
 }) {
   return (
     <div
-      className={`flex flex-col gap-0.5 px-1 -mx-1 ${
-        file.highlighted ? "bg-[#FFFF66]" : ""
+      className={`flex flex-col gap-px ${
+        file.highlighted ? "bg-[#FFFF66] -mx-1 px-1" : ""
       }`}
     >
       <div className="flex items-baseline gap-2">
@@ -94,7 +90,7 @@ function FileRow({
           onClick={onOpen}
           title="Open file"
           aria-label={`Open ${file.filename}`}
-          className="font-sans text-[11px] text-[#808080] hover:text-[#000080] cursor-pointer select-none"
+          className="font-body font-bold text-[14px] leading-[18px] text-black hover:text-[#000080] cursor-pointer select-none"
         >
           —
         </button>
@@ -103,12 +99,12 @@ function FileRow({
           onCommit={(n) => onRename(n)}
           ariaLabel={`Rename ${file.filename}`}
           selectAllOnFocus
-          className="font-['Times_New_Roman',serif] text-[#000080] underline decoration-[1px] underline-offset-2 text-[14px] font-bold"
+          className="font-body font-bold text-[14px] leading-[18px] text-[#000080] underline decoration-[1px] underline-offset-2"
         />
-        <span className="font-['Times_New_Roman',serif] text-[14px] font-bold text-[#000080] underline decoration-[1px] underline-offset-2 select-none">
+        <span className="font-body font-bold text-[14px] leading-[18px] text-[#000080] underline decoration-[1px] underline-offset-2 select-none">
           .md
         </span>
-        <span className="font-sans text-[11px] text-[#808080]">
+        <span className="font-chrome text-[10px] leading-3 text-[#808080]">
           <span
             onClick={onToggleHighlight}
             className="cursor-pointer hover:bg-[#FFFF66] px-0.5"
@@ -133,7 +129,7 @@ function FileRow({
           multiline
           ariaLabel={`Edit summary for ${file.filename}`}
           placeholder="(add a one-sentence summary)"
-          className="block w-full font-['Times_New_Roman',serif] text-[13px] leading-[18px] text-black"
+          className="block w-full font-body text-[12px] leading-[17px] text-black"
         />
       </div>
     </div>
@@ -142,9 +138,9 @@ function FileRow({
 
 function FolderGlyph() {
   return (
-    <div className="w-4 h-3 relative shrink-0 pixelated">
-      <div className="top-0 left-0 w-[7px] h-[3px] absolute bg-[#FFE600] border border-black border-b-0" />
-      <div className="top-[2px] left-0 w-4 h-[10px] absolute bg-[#FFE600] border border-black" />
-    </div>
+    <span className="inline-block w-[18px] h-3 relative align-middle pixelated mr-1">
+      <span className="absolute top-0 left-0 w-[7px] h-[3px] bg-[#FFE600] border border-black border-b-0" />
+      <span className="absolute top-[2px] left-0 w-4 h-[10px] bg-[#FFE600] border border-black" />
+    </span>
   );
 }
