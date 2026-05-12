@@ -21,9 +21,11 @@ const SUNKEN =
 export function Chat({
   onClose,
   focusFile,
+  onMissingKey,
 }: {
   onClose: () => void;
   focusFile?: string | null;
+  onMissingKey?: () => void;
 }) {
   const [messages, setMessages] = useState<{ msg: Message; at: string }[]>([]);
   const [input, setInput] = useState("");
@@ -57,6 +59,11 @@ export function Chat({
       });
       const data = await res.json();
       if (!res.ok || data.error) {
+        if (data.error === "missing-api-key") {
+          setError("Anthropic API key required. Open Settings to add one.");
+          onMissingKey?.();
+          return;
+        }
         setError(data.error || "Chat failed");
         return;
       }

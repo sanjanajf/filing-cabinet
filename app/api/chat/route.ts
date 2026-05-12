@@ -1,20 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import os from "os";
 import Anthropic from "@anthropic-ai/sdk";
 import { readAllContent } from "@/lib/notes";
-
-function resolveApiKey(): string | undefined {
-  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
-  try {
-    const cfg = JSON.parse(
-      fs.readFileSync(path.join(os.homedir(), ".drawer", "config.json"), "utf8")
-    );
-    if (typeof cfg.anthropicApiKey === "string") return cfg.anthropicApiKey;
-  } catch {}
-  return undefined;
-}
+import { resolveApiKey } from "@/lib/config";
 
 const SYSTEM_PROMPT = `You are a reflective, perceptive thinking partner for Sanjana — a writer who edits STATE OF THE ART, works at Y Combinator on Garry's List, and is starting to plan a book.
 
@@ -35,8 +22,8 @@ export async function POST(req: NextRequest) {
   const apiKey = resolveApiKey();
   if (!apiKey) {
     return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY not set. Add it to ~/.drawer/config.json as { \"anthropicApiKey\": \"sk-...\" } or set the env var." },
-      { status: 500 }
+      { error: "missing-api-key" },
+      { status: 401 }
     );
   }
   const client = new Anthropic({ apiKey });

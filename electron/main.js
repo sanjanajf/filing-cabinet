@@ -1,18 +1,6 @@
 const { app, BrowserWindow, shell } = require("electron");
 const path = require("path");
-const fs = require("fs");
-const os = require("os");
 const net = require("net");
-
-function loadConfig() {
-  try {
-    return JSON.parse(
-      fs.readFileSync(path.join(os.homedir(), ".drawer", "config.json"), "utf8")
-    );
-  } catch {
-    return {};
-  }
-}
 
 function getFreePort() {
   return new Promise((resolve, reject) => {
@@ -46,8 +34,6 @@ function waitForPort(port, timeoutMs = 10000) {
 
 async function startNextServer() {
   const port = await getFreePort();
-  const cfg = loadConfig();
-  if (cfg.anthropicApiKey) process.env.ANTHROPIC_API_KEY = cfg.anthropicApiKey;
   process.env.PORT = String(port);
   process.env.HOSTNAME = "127.0.0.1";
   process.env.NODE_ENV = "production";

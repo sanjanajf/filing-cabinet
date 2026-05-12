@@ -101,12 +101,14 @@ export function Toolbar({
   onNewNote,
   onChat,
   chatOpen,
+  onSettings,
   format,
   onFormatChange,
 }: {
   onNewNote: () => void;
   onChat: () => void;
   chatOpen: boolean;
+  onSettings: () => void;
   format: DocFormat;
   onFormatChange?: (next: DocFormat) => void;
 }) {
@@ -166,6 +168,7 @@ export function Toolbar({
       </ToolGroup>
       <Divider />
       <ToolbarButton onClick={onChat} active={chatOpen} label="Chat..." />
+      <ToolbarButton onClick={onSettings} label="Settings..." />
     </div>
   );
 }
