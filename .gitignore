@@ -17,8 +17,9 @@
 /.next/
 /out/
 
-# production
-/build
+# electron-builder output
+/dist
+build/icon.iconset/
 
 # misc
 .DS_Store
