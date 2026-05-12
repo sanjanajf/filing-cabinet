@@ -141,9 +141,24 @@ export default function Page() {
   const handleOpenFolder = useCallback(
     async (slug: string) => {
       setOpenSlug(slug);
-      await ping({ op: "open-folder", slug });
+      setSaved(false);
+      try {
+        const res = await fetch("/api/files", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ op: "open-folder", slug }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Save failed");
+        }
+        await fetchData(slug);
+        setSaved(true);
+      } catch (err) {
+        setLoadError(String(err));
+      }
     },
-    [ping]
+    [fetchData]
   );
 
   const handleRenameFolder = useCallback(

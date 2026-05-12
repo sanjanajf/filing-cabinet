@@ -62,7 +62,7 @@ function FolderTile({
           ? "py-1 px-[2px] bg-[#000080] border border-dotted border-white"
           : "py-[6px] px-1"
       }`}
-      onDoubleClick={onOpen}
+      onClick={onOpen}
     >
       <button
         type="button"
@@ -76,7 +76,7 @@ function FolderTile({
       >
         +
       </button>
-      <div className="w-16 h-[52px] relative shrink-0 pixelated" onClick={onOpen}>
+      <div className="w-16 h-[52px] relative shrink-0 pixelated">
         <div className="absolute top-1 left-[2px] w-[26px] h-2 bg-[#FFE600] border-2 border-black" />
         <div className="absolute top-[10px] left-0 w-16 h-[42px] bg-[#FFE600] border-2 border-black shadow-[2px_2px_0_#00000055]" />
         <div className="absolute top-3 left-1 w-14 h-px bg-[#FFFFAA]" />
