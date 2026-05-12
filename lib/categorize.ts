@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { FolderMeta } from "./notes";
+import { resolveApiKey } from "./config";
 
 export type FolderSuggestion = {
   slug: string;
@@ -19,11 +20,12 @@ export async function suggestFolder(
   filename: string,
   folders: FolderMeta[]
 ): Promise<FolderSuggestion> {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  const apiKey = resolveApiKey();
+  if (!apiKey) {
     return defaultSuggestion(folders);
   }
 
-  const client = new Anthropic();
+  const client = new Anthropic({ apiKey });
   const folderList =
     folders.length > 0
       ? folders.map((f) => `- ${f.slug} (label: "${f.name}")`).join("\n")

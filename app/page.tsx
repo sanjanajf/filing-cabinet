@@ -15,6 +15,7 @@ import { DocHeader } from "@/components/DocHeader";
 import { Editor } from "@/components/Editor";
 import { Chat } from "@/components/Chat";
 import { PlacementConfirm, type Placement } from "@/components/PlacementConfirm";
+import { SettingsDialog } from "@/components/SettingsDialog";
 import type { FileMeta, FolderMeta, Meta } from "@/lib/notes";
 
 type FilesPayload = {
@@ -57,6 +58,7 @@ export default function Page() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingFile, setEditingFile] = useState<string | null>(null);
   const [defaultFormat, setDefaultFormat] = useState<DocFormat>(DEFAULT_FORMAT);
   const [noteFormat, setNoteFormat] = useState<DocFormat>(DEFAULT_FORMAT);
@@ -442,6 +444,7 @@ export default function Page() {
         onNewNote={handleNewNote}
         onChat={() => setChatOpen((v) => !v)}
         chatOpen={chatOpen}
+        onSettings={() => setSettingsOpen(true)}
         format={activeFormat}
         onFormatChange={handleFormatChange}
       />
@@ -514,10 +517,16 @@ export default function Page() {
 
         {chatOpen && (
           <div className="w-[320px] shrink-0">
-            <Chat onClose={() => setChatOpen(false)} focusFile={editingFile} />
+            <Chat
+              onClose={() => setChatOpen(false)}
+              focusFile={editingFile}
+              onMissingKey={() => setSettingsOpen(true)}
+            />
           </div>
         )}
       </div>
+
+      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
 
       <StatusBar
         page={1}
