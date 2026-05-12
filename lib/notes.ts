@@ -50,6 +50,16 @@ export type Meta = {
   highlights: string[];
   fileSummaries: Record<string, string>;
   fileFormats: Record<string, FileFormat>;
+  defaultFormat: FileFormat;
+  outlineVisible: boolean;
+};
+
+export const DEFAULT_FILE_FORMAT: FileFormat = {
+  font: "Times New Roman",
+  size: 14,
+  bold: false,
+  italic: false,
+  underline: false,
 };
 
 const DEFAULT_META: Meta = {
@@ -60,6 +70,8 @@ const DEFAULT_META: Meta = {
   highlights: [],
   fileSummaries: {},
   fileFormats: {},
+  defaultFormat: DEFAULT_FILE_FORMAT,
+  outlineVisible: true,
 };
 
 function safeRel(rel: string): string {
@@ -371,6 +383,18 @@ export async function getFormat(
   return meta.fileFormats[safe] ?? null;
 }
 
+export async function getEffectiveFormat(
+  relPath: string
+): Promise<FileFormat> {
+  const safe = safeRel(relPath);
+  const meta = await readMeta();
+  return meta.fileFormats[safe] ?? meta.defaultFormat ?? DEFAULT_FILE_FORMAT;
+}
+
+export async function updateDefaultFormat(format: FileFormat): Promise<void> {
+  await patchMeta({ defaultFormat: format });
+}
+
 export async function createFolder(slug: string): Promise<string> {
   const cleaned = slug.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "");
   if (!cleaned) throw new Error("Invalid folder name");
@@ -396,6 +420,107 @@ export async function createNote(folderSlug: string): Promise<string> {
     }
   }
   throw new Error("Could not allocate new note name");
+}
+
+function sanitizeAssetName(name: string): string {
+  const base = path.basename(name);
+  const ext = path.extname(base).toLowerCase();
+  const stem = base.slice(0, base.length - ext.length);
+  const safeStem = stem
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  const safeExt = ext.replace(/[^a-zA-Z0-9.]/g, "");
+  return (safeStem || "asset") + safeExt;
+}
+
+export async function writeAsset(
+  buffer: Buffer,
+  originalName: string
+): Promise<string> {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const bucket = `${yyyy}-${mm}`;
+  const dir = path.join(WRITING_DIR, "_assets", bucket);
+  await fs.mkdir(dir, { recursive: true });
+
+  const cleaned = sanitizeAssetName(originalName);
+  const ext = path.extname(cleaned);
+  const stem = cleaned.slice(0, cleaned.length - ext.length);
+
+  let candidate = cleaned;
+  let i = 2;
+  while (i < 1000) {
+    try {
+      await fs.access(path.join(dir, candidate));
+      candidate = `${stem}-${i}${ext}`;
+      i++;
+    } catch {
+      break;
+    }
+  }
+  await fs.writeFile(path.join(dir, candidate), buffer);
+  return path.join("_assets", bucket, candidate);
+}
+
+export async function moveFile(
+  relPath: string,
+  newFolderSlug: string
+): Promise<string> {
+  const safe = safeRel(relPath);
+  const safeFolder = safeRel(newFolderSlug);
+  const filename = path.basename(safe);
+  const target = path.join(safeFolder, filename);
+  if (safe === target) return target;
+
+  const fullOld = path.join(WRITING_DIR, safe);
+  const fullNewDir = path.join(WRITING_DIR, safeFolder);
+  const fullNew = path.join(fullNewDir, filename);
+
+  await fs.mkdir(fullNewDir, { recursive: true });
+
+  let finalTarget = target;
+  let finalFull = fullNew;
+  if (fullOld !== fullNew) {
+    try {
+      await fs.access(fullNew);
+      const ext = path.extname(filename);
+      const stem = filename.slice(0, filename.length - ext.length);
+      let i = 2;
+      while (i < 1000) {
+        const candidate = `${stem}-${i}${ext}`;
+        const candidateFull = path.join(fullNewDir, candidate);
+        try {
+          await fs.access(candidateFull);
+          i++;
+        } catch {
+          finalTarget = path.join(safeFolder, candidate);
+          finalFull = candidateFull;
+          break;
+        }
+      }
+    } catch {
+      // destination is free
+    }
+    await fs.rename(fullOld, finalFull);
+  }
+
+  const meta = await readMeta();
+  if (meta.fileSummaries[safe] !== undefined) {
+    meta.fileSummaries[finalTarget] = meta.fileSummaries[safe];
+    delete meta.fileSummaries[safe];
+  }
+  if (meta.fileFormats[safe] !== undefined) {
+    meta.fileFormats[finalTarget] = meta.fileFormats[safe];
+    delete meta.fileFormats[safe];
+  }
+  const hi = meta.highlights.indexOf(safe);
+  if (hi >= 0) meta.highlights[hi] = finalTarget;
+  await writeMeta(meta);
+
+  return finalTarget;
 }
 
 export async function readLayout(): Promise<Layout> {

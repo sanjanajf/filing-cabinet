@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { FileMeta, FolderMeta } from "@/lib/notes";
 import { InlineEdit } from "./InlineEdit";
 
@@ -13,6 +14,7 @@ type Props = {
   onEditSummary: (relPath: string, summary: string) => void;
   onToggleHighlight: (relPath: string) => void;
   onNewNote: () => void;
+  onUpload: (files: FileList) => void;
 };
 
 export function OpenFolder({
@@ -25,7 +27,9 @@ export function OpenFolder({
   onEditSummary,
   onToggleHighlight,
   onNewNote,
+  onUpload,
 }: Props) {
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   if (!folder) return null;
 
   return (
@@ -53,13 +57,32 @@ export function OpenFolder({
             onToggleHighlight={() => onToggleHighlight(f.relPath)}
           />
         ))}
-        <div className="pt-[6px]">
+        <div className="pt-[6px] flex flex-col gap-1">
           <button
             onClick={onNewNote}
-            className="font-body italic text-[12px] leading-4 text-[#808080] hover:text-[#000080]"
+            className="text-left font-body italic text-[12px] leading-4 text-[#808080] hover:text-[#000080]"
           >
             — [ + new note in {folder.slug}\ ] | Ctrl+N
           </button>
+          <button
+            onClick={() => uploadInputRef.current?.click()}
+            className="text-left font-body italic text-[12px] leading-4 text-[#808080] hover:text-[#000080]"
+          >
+            — [ + upload to {folder.slug}\ ] (pdf, docx, md, txt, image)
+          </button>
+          <input
+            ref={uploadInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.docx,.md,.markdown,.txt,.png,.jpg,.jpeg,.gif,.webp"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                onUpload(e.target.files);
+                e.target.value = "";
+              }
+            }}
+          />
         </div>
       </div>
     </div>
@@ -81,7 +104,7 @@ function FileRow({
 }) {
   return (
     <div
-      className={`flex flex-col gap-px ${
+      className={`group flex flex-col gap-px ${
         file.highlighted ? "bg-[#FFFF66] -mx-1 px-1" : ""
       }`}
     >
@@ -94,16 +117,11 @@ function FileRow({
         >
           —
         </button>
-        <InlineEdit
-          value={file.filename.replace(/\.md$/, "")}
-          onCommit={(n) => onRename(n)}
-          ariaLabel={`Rename ${file.filename}`}
-          selectAllOnFocus
-          className="font-body font-bold text-[14px] leading-[18px] text-[#000080] underline decoration-[1px] underline-offset-2"
+        <FilenameLink
+          filename={file.filename}
+          onOpen={onOpen}
+          onRename={onRename}
         />
-        <span className="font-body font-bold text-[14px] leading-[18px] text-[#000080] underline decoration-[1px] underline-offset-2 select-none">
-          .md
-        </span>
         <span className="font-chrome text-[10px] leading-3 text-[#808080]">
           <span
             onClick={onToggleHighlight}
@@ -133,6 +151,92 @@ function FileRow({
         />
       </div>
     </div>
+  );
+}
+
+function FilenameLink({
+  filename,
+  onOpen,
+  onRename,
+}: {
+  filename: string;
+  onOpen: () => void;
+  onRename: (name: string) => void;
+}) {
+  const stem = filename.replace(/\.md$/, "");
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(stem);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!editing) setDraft(stem);
+  }, [stem, editing]);
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editing]);
+
+  function commit() {
+    setEditing(false);
+    if (draft && draft !== stem) onRename(draft);
+  }
+
+  if (editing) {
+    return (
+      <>
+        <input
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              setDraft(stem);
+              setEditing(false);
+            }
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit();
+            }
+            e.stopPropagation();
+          }}
+          className="font-body font-bold text-[14px] leading-[18px] text-[#000080] underline decoration-[1px] underline-offset-2 bg-[#FFFF66] outline outline-1 outline-[#000080]"
+          aria-label={`Rename ${filename}`}
+        />
+        <span className="font-body font-bold text-[14px] leading-[18px] text-[#000080] underline decoration-[1px] underline-offset-2 select-none">
+          .md
+        </span>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onOpen}
+        title={`Open ${filename}`}
+        className="font-body font-bold text-[14px] leading-[18px] text-[#000080] underline decoration-[1px] underline-offset-2 hover:bg-[#FFFF66]/50 cursor-pointer text-left"
+      >
+        {stem}
+      </button>
+      <span className="font-body font-bold text-[14px] leading-[18px] text-[#000080] underline decoration-[1px] underline-offset-2 select-none">
+        .md
+      </span>
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        title={`Rename ${filename}`}
+        aria-label={`Rename ${filename}`}
+        className="ml-1 font-chrome text-[10px] leading-3 text-[#808080] hover:text-[#000080] opacity-0 group-hover:opacity-100 focus:opacity-100"
+      >
+        [rename]
+      </button>
+    </>
   );
 }
 

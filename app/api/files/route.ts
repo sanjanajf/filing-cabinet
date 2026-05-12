@@ -7,7 +7,9 @@ import {
   globalStats,
   renameFolder,
   renameFile,
+  moveFile,
   updateSummary,
+  updateDefaultFormat,
   createFolder,
   createNote,
 } from "@/lib/notes";
@@ -34,6 +36,11 @@ export async function PATCH(req: NextRequest) {
     } else if (op === "rename-file") {
       const next = await renameFile(body.relPath, body.filename);
       return NextResponse.json({ ok: true, relPath: next });
+    } else if (op === "move-file") {
+      const next = await moveFile(body.relPath, body.folder);
+      return NextResponse.json({ ok: true, relPath: next });
+    } else if (op === "outline-visible") {
+      await patchMeta({ outlineVisible: Boolean(body.visible) });
     } else if (op === "summary") {
       await updateSummary(body.relPath, body.summary);
     } else if (op === "doc-title") {
@@ -44,6 +51,11 @@ export async function PATCH(req: NextRequest) {
       const meta = await readMeta();
       meta.countLabels[body.slug] = body.label;
       await patchMeta({ countLabels: meta.countLabels });
+    } else if (op === "default-format") {
+      if (!body.format) {
+        return NextResponse.json({ error: "format required" }, { status: 400 });
+      }
+      await updateDefaultFormat(body.format);
     } else if (op === "toggle-highlight") {
       const meta = await readMeta();
       const idx = meta.highlights.indexOf(body.relPath);

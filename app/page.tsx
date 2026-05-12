@@ -14,6 +14,7 @@ import { OpenFolder } from "@/components/OpenFolder";
 import { DocHeader } from "@/components/DocHeader";
 import { Editor } from "@/components/Editor";
 import { Chat } from "@/components/Chat";
+import { PlacementConfirm, type Placement } from "@/components/PlacementConfirm";
 import type { FileMeta, FolderMeta, Meta } from "@/lib/notes";
 
 type FilesPayload = {
@@ -57,8 +58,31 @@ export default function Page() {
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [editingFile, setEditingFile] = useState<string | null>(null);
-  const [format, setFormat] = useState<DocFormat>(DEFAULT_FORMAT);
+  const [defaultFormat, setDefaultFormat] = useState<DocFormat>(DEFAULT_FORMAT);
+  const [noteFormat, setNoteFormat] = useState<DocFormat>(DEFAULT_FORMAT);
   const [saved, setSaved] = useState(true);
+  const [placements, setPlacements] = useState<Placement[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [outlineVisible, setOutlineVisible] = useState(true);
+
+  const activeFormat = editingFile ? noteFormat : defaultFormat;
+
+  const handleFormatChange = useCallback(
+    (next: DocFormat) => {
+      if (editingFile) {
+        setNoteFormat(next);
+        return;
+      }
+      setDefaultFormat(next);
+      fetch("/api/files", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "default-format", format: next }),
+      }).catch(() => {});
+    },
+    [editingFile]
+  );
   const now = useClock();
 
   const fetchData = useCallback(async (folder?: string) => {
@@ -72,6 +96,12 @@ export default function Page() {
       }
       setData(payload);
       setOpenSlug(payload.openFolder);
+      if (payload.meta?.defaultFormat) {
+        setDefaultFormat({ ...DEFAULT_FORMAT, ...payload.meta.defaultFormat });
+      }
+      if (typeof payload.meta?.outlineVisible === "boolean") {
+        setOutlineVisible(payload.meta.outlineVisible);
+      }
     } catch (err) {
       setLoadError(String(err));
     }
@@ -119,9 +149,24 @@ export default function Page() {
   const handleOpenFolder = useCallback(
     async (slug: string) => {
       setOpenSlug(slug);
-      await ping({ op: "open-folder", slug });
+      setSaved(false);
+      try {
+        const res = await fetch("/api/files", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ op: "open-folder", slug }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Save failed");
+        }
+        await fetchData(slug);
+        setSaved(true);
+      } catch (err) {
+        setLoadError(String(err));
+      }
     },
-    [ping]
+    [fetchData]
   );
 
   const handleRenameFolder = useCallback(
@@ -241,18 +286,164 @@ export default function Page() {
     return () => window.removeEventListener("keydown", onKey);
   }, [handleNewNote]);
 
+  const uploadFile = useCallback(
+    async (file: File, targetFolder?: string) => {
+      setUploading(true);
+      try {
+        const form = new FormData();
+        form.append("file", file);
+        if (targetFolder) form.append("folder", targetFolder);
+        const res = await fetch("/api/upload", { method: "POST", body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+        const placement: Placement = {
+          relPath: data.relPath,
+          filename: data.filename,
+          suggestion: data.suggestion,
+        };
+        setPlacements((p) => [...p, placement]);
+        const placedFolder = placement.suggestion.slug;
+        setOpenSlug(placedFolder);
+        await fetchData(placedFolder);
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setUploading(false);
+      }
+    },
+    [fetchData]
+  );
+
+  const handleUploadFiles = useCallback(
+    async (files: FileList | File[], targetFolder?: string) => {
+      const list = Array.from(files);
+      for (const f of list) {
+        await uploadFile(f, targetFolder);
+      }
+    },
+    [uploadFile]
+  );
+
+  const handleOutlineToggle = useCallback(() => {
+    setOutlineVisible((v) => {
+      const next = !v;
+      fetch("/api/files", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "outline-visible", visible: next }),
+      }).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    let depth = 0;
+    function hasFiles(e: DragEvent) {
+      return Array.from(e.dataTransfer?.types ?? []).includes("Files");
+    }
+    function onDragEnter(e: DragEvent) {
+      if (!hasFiles(e)) return;
+      depth++;
+      setDragging(true);
+    }
+    function onDragLeave(e: DragEvent) {
+      if (!hasFiles(e)) return;
+      depth = Math.max(0, depth - 1);
+      if (depth === 0) setDragging(false);
+    }
+    function onDragOver(e: DragEvent) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+    }
+    function onDrop(e: DragEvent) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth = 0;
+      setDragging(false);
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        handleUploadFiles(files, editingFile ? undefined : openSlug ?? undefined);
+      }
+    }
+    window.addEventListener("dragenter", onDragEnter);
+    window.addEventListener("dragleave", onDragLeave);
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragenter", onDragEnter);
+      window.removeEventListener("dragleave", onDragLeave);
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, [handleUploadFiles, editingFile, openSlug]);
+
+  const handlePlacementConfirm = useCallback(
+    (id: string) => {
+      setPlacements((p) => p.filter((x) => x.relPath !== id));
+      fetchData(openSlug ?? undefined).catch(() => {});
+    },
+    [fetchData, openSlug]
+  );
+
+  const handlePlacementChange = useCallback(
+    (id: string, newRelPath: string) => {
+      setPlacements((p) =>
+        p.map((x) =>
+          x.relPath === id ? { ...x, relPath: newRelPath, filename: newRelPath.split("/").pop() ?? x.filename } : x
+        )
+      );
+      const newFolder = newRelPath.includes("/") ? newRelPath.split("/")[0] : undefined;
+      if (newFolder) setOpenSlug(newFolder);
+      fetchData(newFolder ?? openSlug ?? undefined).catch(() => {});
+    },
+    [fetchData, openSlug]
+  );
+
+  const handlePlacementDismiss = useCallback(
+    (id: string) => {
+      setPlacements((p) => p.filter((x) => x.relPath !== id));
+    },
+    []
+  );
+
   return (
     <div
-      className="flex flex-col w-[1408px] h-[868px] overflow-hidden bg-[#C0C0C0] font-chrome text-black border-2 border-t-white border-l-white border-b-[#404040] border-r-[#404040]"
+      className="relative flex flex-col w-[1408px] h-[868px] overflow-hidden bg-[#C0C0C0] font-chrome text-black border-2 border-t-white border-l-white border-b-[#404040] border-r-[#404040]"
       style={{ boxShadow: "1px 1px 0 #000000" }}
     >
-      <TitleBar title="Filing cabinet" />
+      <TitleBar title="Workspace" />
+      {placements.length > 0 && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-1 items-center">
+          {placements.map((p) => (
+            <PlacementConfirm
+              key={p.relPath}
+              placement={p}
+              folders={data?.folders ?? []}
+              onConfirm={handlePlacementConfirm}
+              onChange={handlePlacementChange}
+              onDismiss={handlePlacementDismiss}
+            />
+          ))}
+        </div>
+      )}
+      {dragging && (
+        <div className="absolute inset-0 z-40 bg-[#000080]/20 border-4 border-dashed border-[#000080] flex items-center justify-center pointer-events-none">
+          <div className="bg-white border-2 border-black px-6 py-3 font-sans text-[14px] font-bold text-[#000080] shadow-[2px_2px_0_#00000044]">
+            drop to import
+          </div>
+        </div>
+      )}
+      {uploading && (
+        <div className="absolute top-2 right-2 z-50 bg-[#FFFFE0] border border-black px-2 py-1 font-sans text-[11px]">
+          uploading…
+        </div>
+      )}
       <Toolbar
         onNewNote={handleNewNote}
         onChat={() => setChatOpen((v) => !v)}
         chatOpen={chatOpen}
-        format={format}
-        onFormatChange={editingFile ? setFormat : undefined}
+        format={activeFormat}
+        onFormatChange={handleFormatChange}
       />
       <Ruler />
 
@@ -265,8 +456,10 @@ export default function Page() {
             <Editor
               slug={editingFile}
               onClose={() => setEditingFile(null)}
-              format={format}
-              onFormatLoaded={setFormat}
+              format={noteFormat}
+              onFormatLoaded={setNoteFormat}
+              outlineVisible={outlineVisible}
+              onOutlineToggle={handleOutlineToggle}
             />
           ) : (
             <div className="flex-1 flex flex-col py-5 px-8 gap-[14px] overflow-auto">
@@ -311,6 +504,7 @@ export default function Page() {
                     onEditSummary={handleEditSummary}
                     onToggleHighlight={handleToggleHighlight}
                     onNewNote={handleNewNote}
+                    onUpload={(fl) => handleUploadFiles(fl, folder?.slug)}
                   />
                 </>
               )}
