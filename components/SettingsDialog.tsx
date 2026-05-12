@@ -136,7 +136,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           )}
           {savedAt && !error && (
             <div className="font-chrome text-[11px] text-[#404040]">
-              Saved to ~/.drawer/config.json
+              Saved to ~/.workspace/config.json
             </div>
           )}
 
