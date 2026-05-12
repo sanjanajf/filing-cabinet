@@ -232,7 +232,7 @@ export default function Page() {
   }, [handleNewNote]);
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#008080] font-sans text-black">
+    <div className="flex flex-col w-[1440px] h-[900px] overflow-hidden bg-[#C0C0C0] font-sans text-black shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#000000,inset_2px_2px_0_#DFDFDF,inset_-2px_-2px_0_#808080]">
       <TitleBar title="Filing cabinet" />
       <MenuBar activeMenu="Desk" />
       <Toolbar
