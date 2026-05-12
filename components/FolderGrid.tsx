@@ -57,23 +57,18 @@ function FolderTile({
       }`}
       onDoubleClick={onOpen}
     >
-      <div className="w-16 h-[52px] relative shrink-0" onClick={onOpen}>
-        <div className="top-1 left-0.5 w-[26px] h-2 absolute bg-[#FFE600] border-2 border-black" />
-        <div
-          className={`top-[10px] left-0 w-16 h-[42px] absolute bg-[#FFE600] border-2 border-black ${
-            selected
-              ? "shadow-[2px_2px_0_#00000088]"
-              : "shadow-[2px_2px_0_#00000055]"
-          }`}
-        />
-        <div className="top-3 left-1 w-14 h-px absolute bg-[#FFFFAA]" />
+      <div className="w-16 h-[52px] relative shrink-0 pixelated" onClick={onOpen}>
+        <div className="top-1 left-0 w-[28px] h-[8px] absolute bg-[#FFE600] border-[2px] border-black border-b-0" />
+        <div className="top-[8px] left-0 w-16 h-[44px] absolute bg-[#FFE600] border-[2px] border-black shadow-[2px_2px_0_#000000]" />
+        <div className="top-[10px] left-[2px] w-[60px] h-px absolute bg-[#FFFFFF]" />
+        <div className="top-[11px] left-[2px] w-[60px] h-px absolute bg-[#FFFFAA]" />
       </div>
       <InlineEdit
         value={folder.name}
         onCommit={onRenameName}
         ariaLabel={`Rename folder ${folder.name}`}
         selectAllOnFocus
-        className={`text-center font-sans text-[11px] leading-[13px] px-1 ${
+        className={`text-center font-chrome text-[11px] leading-[13px] px-1 ${
           selected ? "text-white" : "text-black"
         }`}
       />
@@ -82,7 +77,7 @@ function FolderTile({
         onCommit={onRenameCount}
         ariaLabel={`Edit ${folder.name} count label`}
         selectAllOnFocus
-        className={`font-sans text-[9px] leading-[12px] px-1 ${
+        className={`font-chrome text-[9px] leading-[12px] px-1 ${
           selected ? "text-[#C0C0C0]" : "text-[#808080]"
         }`}
       />
@@ -96,13 +91,13 @@ function NewFolderTile({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       className="flex flex-col items-center w-24 py-1 px-1 gap-1 shrink-0"
     >
-      <div className="w-16 h-[52px] relative shrink-0">
-        <div className="top-1 left-0.5 w-[26px] h-2 absolute bg-white border-2 border-dashed border-[#808080]" />
-        <div className="top-[10px] left-0 w-16 h-[42px] flex items-center justify-center absolute bg-white border-2 border-dashed border-[#808080]">
-          <span className="font-sans text-[#808080] text-2xl leading-none">+</span>
+      <div className="w-16 h-[52px] relative shrink-0 pixelated">
+        <div className="top-1 left-0 w-[28px] h-[8px] absolute bg-white border-[2px] border-dashed border-[#808080] border-b-0" />
+        <div className="top-[8px] left-0 w-16 h-[44px] flex items-center justify-center absolute bg-white border-[2px] border-dashed border-[#808080]">
+          <span className="font-chrome text-[#808080] text-2xl leading-none">+</span>
         </div>
       </div>
-      <span className="text-center font-sans italic text-[#808080] text-[11px] leading-[13px]">
+      <span className="text-center font-chrome italic text-[#808080] text-[11px] leading-[13px]">
         New folder
       </span>
     </button>

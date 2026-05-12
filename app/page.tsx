@@ -244,7 +244,7 @@ export default function Page() {
 
       <div className="flex-1 flex bg-[#C0C0C0] overflow-hidden">
         <div className="flex-1 p-2 overflow-hidden flex">
-          <div className="flex-1 bg-white shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040,1px_1px_0_#000000] overflow-auto">
+          <div className="flex-1 bg-white shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF,inset_2px_2px_0_#808080,inset_-2px_-2px_0_#DFDFDF] overflow-auto">
             {editingFile ? (
               <Editor slug={editingFile} onClose={() => setEditingFile(null)} />
             ) : (
@@ -298,7 +298,7 @@ export default function Page() {
           </div>
 
           {chatOpen && (
-            <div className="w-[320px] ml-2 shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040,1px_1px_0_#000000]">
+            <div className="w-[320px] ml-2 shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040,inset_2px_2px_0_#DFDFDF,inset_-2px_-2px_0_#808080]">
               <Chat onClose={() => setChatOpen(false)} />
             </div>
           )}
