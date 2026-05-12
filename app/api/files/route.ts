@@ -8,6 +8,7 @@ import {
   renameFolder,
   renameFile,
   updateSummary,
+  updateDefaultFormat,
   createFolder,
   createNote,
 } from "@/lib/notes";
@@ -44,6 +45,11 @@ export async function PATCH(req: NextRequest) {
       const meta = await readMeta();
       meta.countLabels[body.slug] = body.label;
       await patchMeta({ countLabels: meta.countLabels });
+    } else if (op === "default-format") {
+      if (!body.format) {
+        return NextResponse.json({ error: "format required" }, { status: 400 });
+      }
+      await updateDefaultFormat(body.format);
     } else if (op === "toggle-highlight") {
       const meta = await readMeta();
       const idx = meta.highlights.indexOf(body.relPath);

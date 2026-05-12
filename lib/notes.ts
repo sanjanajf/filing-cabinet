@@ -50,6 +50,15 @@ export type Meta = {
   highlights: string[];
   fileSummaries: Record<string, string>;
   fileFormats: Record<string, FileFormat>;
+  defaultFormat: FileFormat;
+};
+
+export const DEFAULT_FILE_FORMAT: FileFormat = {
+  font: "Times New Roman",
+  size: 14,
+  bold: false,
+  italic: false,
+  underline: false,
 };
 
 const DEFAULT_META: Meta = {
@@ -60,6 +69,7 @@ const DEFAULT_META: Meta = {
   highlights: [],
   fileSummaries: {},
   fileFormats: {},
+  defaultFormat: DEFAULT_FILE_FORMAT,
 };
 
 function safeRel(rel: string): string {
@@ -369,6 +379,18 @@ export async function getFormat(
   const safe = safeRel(relPath);
   const meta = await readMeta();
   return meta.fileFormats[safe] ?? null;
+}
+
+export async function getEffectiveFormat(
+  relPath: string
+): Promise<FileFormat> {
+  const safe = safeRel(relPath);
+  const meta = await readMeta();
+  return meta.fileFormats[safe] ?? meta.defaultFormat ?? DEFAULT_FILE_FORMAT;
+}
+
+export async function updateDefaultFormat(format: FileFormat): Promise<void> {
+  await patchMeta({ defaultFormat: format });
 }
 
 export async function createFolder(slug: string): Promise<string> {

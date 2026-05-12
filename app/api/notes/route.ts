@@ -4,7 +4,7 @@ import {
   readNote,
   writeNote,
   readLayout,
-  getFormat,
+  getEffectiveFormat,
   updateFormat,
   type FileFormat,
 } from "@/lib/notes";
@@ -37,6 +37,9 @@ export async function POST(req: NextRequest) {
   if (typeof relPath !== "string") {
     return NextResponse.json({ error: "relPath required" }, { status: 400 });
   }
-  const [content, format] = await Promise.all([readNote(relPath), getFormat(relPath)]);
+  const [content, format] = await Promise.all([
+    readNote(relPath),
+    getEffectiveFormat(relPath),
+  ]);
   return NextResponse.json({ content, format });
 }

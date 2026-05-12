@@ -57,8 +57,27 @@ export default function Page() {
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [editingFile, setEditingFile] = useState<string | null>(null);
-  const [format, setFormat] = useState<DocFormat>(DEFAULT_FORMAT);
+  const [defaultFormat, setDefaultFormat] = useState<DocFormat>(DEFAULT_FORMAT);
+  const [noteFormat, setNoteFormat] = useState<DocFormat>(DEFAULT_FORMAT);
   const [saved, setSaved] = useState(true);
+
+  const activeFormat = editingFile ? noteFormat : defaultFormat;
+
+  const handleFormatChange = useCallback(
+    (next: DocFormat) => {
+      if (editingFile) {
+        setNoteFormat(next);
+        return;
+      }
+      setDefaultFormat(next);
+      fetch("/api/files", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "default-format", format: next }),
+      }).catch(() => {});
+    },
+    [editingFile]
+  );
   const now = useClock();
 
   const fetchData = useCallback(async (folder?: string) => {
@@ -72,6 +91,9 @@ export default function Page() {
       }
       setData(payload);
       setOpenSlug(payload.openFolder);
+      if (payload.meta?.defaultFormat) {
+        setDefaultFormat({ ...DEFAULT_FORMAT, ...payload.meta.defaultFormat });
+      }
     } catch (err) {
       setLoadError(String(err));
     }
@@ -251,8 +273,8 @@ export default function Page() {
         onNewNote={handleNewNote}
         onChat={() => setChatOpen((v) => !v)}
         chatOpen={chatOpen}
-        format={format}
-        onFormatChange={editingFile ? setFormat : undefined}
+        format={activeFormat}
+        onFormatChange={handleFormatChange}
       />
       <Ruler />
 
@@ -265,8 +287,8 @@ export default function Page() {
             <Editor
               slug={editingFile}
               onClose={() => setEditingFile(null)}
-              format={format}
-              onFormatLoaded={setFormat}
+              format={noteFormat}
+              onFormatLoaded={setNoteFormat}
             />
           ) : (
             <div className="flex-1 flex flex-col py-5 px-8 gap-[14px] overflow-auto">
