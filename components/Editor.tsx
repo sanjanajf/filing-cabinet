@@ -1,18 +1,29 @@
 "use client";
 
-import { Fragment, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_FORMAT, type DocFormat } from "./Win95Chrome";
+import { Outline } from "./Outline";
+import { parseHeadings, type Heading } from "@/lib/outline";
 
 type Props = {
   slug: string;
   onClose: () => void;
   format: DocFormat;
   onFormatLoaded: (format: DocFormat) => void;
+  outlineVisible: boolean;
+  onOutlineToggle: () => void;
 };
 
 type Mode = "read" | "edit";
 
-export function Editor({ slug, onClose, format, onFormatLoaded }: Props) {
+export function Editor({
+  slug,
+  onClose,
+  format,
+  onFormatLoaded,
+  outlineVisible,
+  onOutlineToggle,
+}: Props) {
   const [content, setContent] = useState<string | null>(null);
   const [savedContent, setSavedContent] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "saving" | "error">("loading");
@@ -20,6 +31,29 @@ export function Editor({ slug, onClose, format, onFormatLoaded }: Props) {
   const [mode, setMode] = useState<Mode>("read");
   const savedFormatRef = useRef<DocFormat>(format);
   const readRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const headings = useMemo<Heading[]>(
+    () => (content === null ? [] : parseHeadings(content)),
+    [content]
+  );
+
+  const handleJump = useCallback(
+    (h: Heading) => {
+      if (mode === "read") {
+        const el = readRef.current?.querySelector<HTMLElement>(`#${cssEscape(h.slug)}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      const ta = textareaRef.current;
+      if (!ta) return;
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = h.charOffset;
+      const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || format.size * 1.55;
+      ta.scrollTop = Math.max(0, h.lineIndex * lineHeight - 40);
+    },
+    [mode, format.size]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -174,38 +208,52 @@ export function Editor({ slug, onClose, format, onFormatLoaded }: Props) {
           {error}
         </div>
       )}
-      {mode === "edit" ? (
-        <textarea
-          value={content ?? ""}
-          onChange={(e) => setContent(e.target.value)}
-          onBlur={saveOnBlur}
-          disabled={content === null}
-          style={docStyle}
-          className="flex-1 p-6 resize-none outline-none w-full text-black"
-          placeholder={content === null ? "" : "Start writing…"}
-          spellCheck={true}
+      <div className="flex-1 flex overflow-hidden">
+        <Outline
+          headings={headings}
+          visible={outlineVisible}
+          onToggle={onOutlineToggle}
+          onJump={handleJump}
         />
-      ) : (
-        <div
-          ref={readRef}
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "h") {
-              e.preventDefault();
-              toggleHighlight();
-            }
-          }}
-          tabIndex={0}
-          style={docStyle}
-          className="flex-1 px-10 py-8 overflow-auto outline-none text-black max-w-[760px] mx-auto w-full"
-        >
-          {content !== null && renderMarkdown(stripFrontmatter(content))}
-          {content === null && (
-            <span className="text-[#808080] italic">loading…</span>
-          )}
-        </div>
-      )}
+        {mode === "edit" ? (
+          <textarea
+            ref={textareaRef}
+            value={content ?? ""}
+            onChange={(e) => setContent(e.target.value)}
+            onBlur={saveOnBlur}
+            disabled={content === null}
+            style={docStyle}
+            className="flex-1 p-6 resize-none outline-none w-full text-black"
+            placeholder={content === null ? "" : "Start writing…"}
+            spellCheck={true}
+          />
+        ) : (
+          <div
+            ref={readRef}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "h") {
+                e.preventDefault();
+                toggleHighlight();
+              }
+            }}
+            tabIndex={0}
+            style={docStyle}
+            className="flex-1 px-10 py-8 overflow-auto outline-none text-black max-w-[760px] mx-auto w-full"
+          >
+            {content !== null && renderMarkdown(stripFrontmatter(content), headings)}
+            {content === null && (
+              <span className="text-[#808080] italic">loading…</span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
+}
+
+function cssEscape(s: string): string {
+  if (typeof CSS !== "undefined" && CSS.escape) return CSS.escape(s);
+  return s.replace(/[^a-zA-Z0-9_-]/g, "\\$&");
 }
 
 function ModeButton({
@@ -265,15 +313,20 @@ function applyHighlight(content: string, selected: string): string {
   return content.slice(0, idx) + `==${text}==` + content.slice(idx + text.length);
 }
 
-function renderMarkdown(text: string): ReactNode {
+function renderMarkdown(text: string, headings: Heading[] = []): ReactNode {
   const blocks = text.replace(/\r\n/g, "\n").split(/\n\n+/);
+  let headingCursor = 0;
+  const nextSlug = (): string | undefined => {
+    const h = headings[headingCursor++];
+    return h?.slug;
+  };
   return blocks.map((rawBlock, i) => {
     const block = rawBlock.trim();
     if (!block) return null;
     const h3 = block.match(/^###\s+(.+)$/);
     if (h3) {
       return (
-        <h3 key={i} className="font-bold text-[1.1em] mt-3 mb-1">
+        <h3 key={i} id={nextSlug()} className="font-bold text-[1.1em] mt-3 mb-1 scroll-mt-2">
           {renderInline(h3[1])}
         </h3>
       );
@@ -281,7 +334,7 @@ function renderMarkdown(text: string): ReactNode {
     const h2 = block.match(/^##\s+(.+)$/);
     if (h2) {
       return (
-        <h2 key={i} className="font-bold text-[1.25em] mt-4 mb-2">
+        <h2 key={i} id={nextSlug()} className="font-bold text-[1.25em] mt-4 mb-2 scroll-mt-2">
           {renderInline(h2[1])}
         </h2>
       );
@@ -289,7 +342,7 @@ function renderMarkdown(text: string): ReactNode {
     const h1 = block.match(/^#\s+(.+)$/);
     if (h1) {
       return (
-        <h1 key={i} className="font-bold text-[1.5em] mt-4 mb-2">
+        <h1 key={i} id={nextSlug()} className="font-bold text-[1.5em] mt-4 mb-2 scroll-mt-2">
           {renderInline(h1[1])}
         </h1>
       );

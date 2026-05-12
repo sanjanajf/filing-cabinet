@@ -14,6 +14,7 @@ type Props = {
   onEditSummary: (relPath: string, summary: string) => void;
   onToggleHighlight: (relPath: string) => void;
   onNewNote: () => void;
+  onUpload: (files: FileList) => void;
 };
 
 export function OpenFolder({
@@ -26,7 +27,9 @@ export function OpenFolder({
   onEditSummary,
   onToggleHighlight,
   onNewNote,
+  onUpload,
 }: Props) {
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   if (!folder) return null;
 
   return (
@@ -54,13 +57,32 @@ export function OpenFolder({
             onToggleHighlight={() => onToggleHighlight(f.relPath)}
           />
         ))}
-        <div className="pt-[6px]">
+        <div className="pt-[6px] flex flex-col gap-1">
           <button
             onClick={onNewNote}
-            className="font-body italic text-[12px] leading-4 text-[#808080] hover:text-[#000080]"
+            className="text-left font-body italic text-[12px] leading-4 text-[#808080] hover:text-[#000080]"
           >
             — [ + new note in {folder.slug}\ ] | Ctrl+N
           </button>
+          <button
+            onClick={() => uploadInputRef.current?.click()}
+            className="text-left font-body italic text-[12px] leading-4 text-[#808080] hover:text-[#000080]"
+          >
+            — [ + upload to {folder.slug}\ ] (pdf, docx, md, txt, image)
+          </button>
+          <input
+            ref={uploadInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.docx,.md,.markdown,.txt,.png,.jpg,.jpeg,.gif,.webp"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                onUpload(e.target.files);
+                e.target.value = "";
+              }
+            }}
+          />
         </div>
       </div>
     </div>
