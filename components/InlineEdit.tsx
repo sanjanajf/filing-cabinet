@@ -10,6 +10,8 @@ type Props = {
   ariaLabel?: string;
   multiline?: boolean;
   selectAllOnFocus?: boolean;
+  autoEdit?: boolean;
+  onEditDone?: () => void;
 };
 
 export function InlineEdit({
@@ -20,8 +22,10 @@ export function InlineEdit({
   ariaLabel,
   multiline,
   selectAllOnFocus,
+  autoEdit,
+  onEditDone,
 }: Props) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(Boolean(autoEdit));
   const [draft, setDraft] = useState(value);
   const ref = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
 
@@ -41,10 +45,12 @@ export function InlineEdit({
   function commit() {
     setEditing(false);
     if (draft !== value) onCommit(draft);
+    onEditDone?.();
   }
   function cancel() {
     setDraft(value);
     setEditing(false);
+    onEditDone?.();
   }
 
   if (!editing) {

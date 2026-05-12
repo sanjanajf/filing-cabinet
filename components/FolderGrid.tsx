@@ -11,6 +11,8 @@ type Props = {
   onRenameCount: (slug: string, label: string) => void;
   onNewFolder: () => void;
   onNewNoteInFolder: (slug: string) => void;
+  autoEditSlug?: string | null;
+  onAutoEditDone?: () => void;
 };
 
 export function FolderGrid({
@@ -21,6 +23,8 @@ export function FolderGrid({
   onRenameCount,
   onNewFolder,
   onNewNoteInFolder,
+  autoEditSlug,
+  onAutoEditDone,
 }: Props) {
   return (
     <div className="flex flex-wrap py-[18px] gap-2">
@@ -33,6 +37,8 @@ export function FolderGrid({
           onRenameName={(name) => onRenameFolder(f.slug, name)}
           onRenameCount={(label) => onRenameCount(f.slug, label)}
           onNewNote={() => onNewNoteInFolder(f.slug)}
+          autoEditName={f.slug === autoEditSlug}
+          onAutoEditDone={onAutoEditDone}
         />
       ))}
       <NewFolderTile onClick={onNewFolder} />
@@ -47,6 +53,8 @@ function FolderTile({
   onRenameName,
   onRenameCount,
   onNewNote,
+  autoEditName,
+  onAutoEditDone,
 }: {
   folder: FolderMeta;
   selected: boolean;
@@ -54,6 +62,8 @@ function FolderTile({
   onRenameName: (n: string) => void;
   onRenameCount: (n: string) => void;
   onNewNote: () => void;
+  autoEditName?: boolean;
+  onAutoEditDone?: () => void;
 }) {
   return (
     <div
@@ -86,6 +96,8 @@ function FolderTile({
         onCommit={onRenameName}
         ariaLabel={`Rename folder ${folder.name}`}
         selectAllOnFocus
+        autoEdit={autoEditName}
+        onEditDone={onAutoEditDone}
         className={`text-center font-chrome text-[11px] leading-[13px] px-1 ${
           selected ? "text-white" : "text-black"
         }`}

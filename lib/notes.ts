@@ -398,9 +398,22 @@ export async function updateDefaultFormat(format: FileFormat): Promise<void> {
 export async function createFolder(slug: string): Promise<string> {
   const cleaned = slug.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "");
   if (!cleaned) throw new Error("Invalid folder name");
-  const safe = safeRel(cleaned);
-  await fs.mkdir(path.join(WRITING_DIR, safe), { recursive: true });
-  return safe;
+
+  let candidate = cleaned;
+  let i = 2;
+  while (i < 1000) {
+    const safe = safeRel(candidate);
+    const full = path.join(WRITING_DIR, safe);
+    try {
+      await fs.access(full);
+      candidate = `${cleaned}-${i}`;
+      i++;
+    } catch {
+      await fs.mkdir(full, { recursive: true });
+      return safe;
+    }
+  }
+  throw new Error("Could not allocate new folder name");
 }
 
 export async function createNote(folderSlug: string): Promise<string> {

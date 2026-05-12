@@ -67,6 +67,7 @@ export default function Page() {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [outlineVisible, setOutlineVisible] = useState(true);
+  const [autoEditFolderSlug, setAutoEditFolderSlug] = useState<string | null>(null);
 
   const activeFormat = editingFile ? noteFormat : defaultFormat;
 
@@ -227,19 +228,18 @@ export default function Page() {
   );
 
   const handleNewFolder = useCallback(async () => {
-    const name = window.prompt("New folder name:");
-    if (!name) return;
     setSaved(false);
     try {
       const res = await fetch("/api/files", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ op: "new-folder", name }),
+        body: JSON.stringify({ op: "new-folder", name: "new folder" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Create failed");
       await fetchData(data.slug);
       setOpenSlug(data.slug);
+      setAutoEditFolderSlug(data.slug);
       setSaved(true);
     } catch (err) {
       setLoadError(String(err));
@@ -496,6 +496,8 @@ export default function Page() {
                     onRenameCount={handleRenameCount}
                     onNewFolder={handleNewFolder}
                     onNewNoteInFolder={handleNewNoteInFolder}
+                    autoEditSlug={autoEditFolderSlug}
+                    onAutoEditDone={() => setAutoEditFolderSlug(null)}
                   />
                   <OpenFolder
                     folder={folder}
