@@ -45,12 +45,20 @@ textarea {
   font-family: var(--font-body);
 }
 
-.pixelated {
+.pixelated,
+.pixelated * {
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
   -ms-interpolation-mode: nearest-neighbor;
   shape-rendering: crispEdges;
+}
+
+img,
+svg {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .inline-edit-target:focus {

@@ -142,8 +142,8 @@ function FileRow({
 
 function FolderGlyph() {
   return (
-    <div className="w-4 h-3 relative shrink-0">
-      <div className="top-0 left-0 w-[7px] h-1 absolute bg-[#FFE600] border border-black" />
+    <div className="w-4 h-3 relative shrink-0 pixelated">
+      <div className="top-0 left-0 w-[7px] h-[3px] absolute bg-[#FFE600] border border-black border-b-0" />
       <div className="top-[2px] left-0 w-4 h-[10px] absolute bg-[#FFE600] border border-black" />
     </div>
   );

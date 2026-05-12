@@ -163,9 +163,9 @@ function ToolIcon({
   title?: string;
 }) {
   return (
-    <Win95Button title={title} className="!w-[22px] !h-[22px] !px-0">
+    <Win95Button title={title} className="!w-[22px] !h-[22px] !px-0 pixelated">
       <span
-        className={`text-[12px] leading-none ${bold ? "font-bold" : ""} ${
+        className={`text-[12px] leading-none pixelated ${bold ? "font-bold" : ""} ${
           italic ? "italic" : ""
         } ${underline ? "underline" : ""}`}
       >
