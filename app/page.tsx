@@ -411,7 +411,7 @@ export default function Page() {
       className="relative flex flex-col w-[1408px] h-[868px] overflow-hidden bg-[#C0C0C0] font-chrome text-black border-2 border-t-white border-l-white border-b-[#404040] border-r-[#404040]"
       style={{ boxShadow: "1px 1px 0 #000000" }}
     >
-      <TitleBar title="Filing cabinet" />
+      <TitleBar title="Workspace" />
       {placements.length > 0 && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-1 items-center">
           {placements.map((p) => (
