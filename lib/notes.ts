@@ -34,6 +34,14 @@ export type FileMeta = {
   highlighted: boolean;
 };
 
+export type FileFormat = {
+  font: string;
+  size: number;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+};
+
 export type Meta = {
   docTitle: string;
   folderLabels: Record<string, string>;
@@ -41,6 +49,7 @@ export type Meta = {
   openFolder: string | null;
   highlights: string[];
   fileSummaries: Record<string, string>;
+  fileFormats: Record<string, FileFormat>;
 };
 
 const DEFAULT_META: Meta = {
@@ -50,6 +59,7 @@ const DEFAULT_META: Meta = {
   openFolder: null,
   highlights: [],
   fileSummaries: {},
+  fileFormats: {},
 };
 
 function safeRel(rel: string): string {
@@ -322,6 +332,10 @@ export async function renameFile(
     meta.fileSummaries[target] = meta.fileSummaries[safe];
     delete meta.fileSummaries[safe];
   }
+  if (meta.fileFormats[safe] !== undefined) {
+    meta.fileFormats[target] = meta.fileFormats[safe];
+    delete meta.fileFormats[safe];
+  }
   const hi = meta.highlights.indexOf(safe);
   if (hi >= 0) meta.highlights[hi] = target;
   await writeMeta(meta);
@@ -337,6 +351,24 @@ export async function updateSummary(
   const meta = await readMeta();
   meta.fileSummaries[safe] = summary;
   await writeMeta(meta);
+}
+
+export async function updateFormat(
+  relPath: string,
+  format: FileFormat
+): Promise<void> {
+  const safe = safeRel(relPath);
+  const meta = await readMeta();
+  meta.fileFormats[safe] = format;
+  await writeMeta(meta);
+}
+
+export async function getFormat(
+  relPath: string
+): Promise<FileFormat | null> {
+  const safe = safeRel(relPath);
+  const meta = await readMeta();
+  return meta.fileFormats[safe] ?? null;
 }
 
 export async function createFolder(slug: string): Promise<string> {

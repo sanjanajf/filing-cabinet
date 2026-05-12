@@ -13,7 +13,13 @@ function nowStamp(): string {
   return `${h}:${m} ${ap}`;
 }
 
-export function Chat({ onClose }: { onClose: () => void }) {
+export function Chat({
+  onClose,
+  focusFile,
+}: {
+  onClose: () => void;
+  focusFile?: string | null;
+}) {
   const [messages, setMessages] = useState<{ msg: Message; at: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +42,10 @@ export function Chat({ onClose }: { onClose: () => void }) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next.map((m) => m.msg) }),
+        body: JSON.stringify({
+          messages: next.map((m) => m.msg),
+          focusFile: focusFile ?? null,
+        }),
       });
       const data = await res.json();
       if (!res.ok || data.error) {
@@ -57,15 +66,22 @@ export function Chat({ onClose }: { onClose: () => void }) {
   return (
     <div className="flex flex-col h-full bg-[#C0C0C0]">
       <div className="flex items-center justify-between bg-[#000080] text-white px-1 h-[22px] select-none">
-        <span className="text-[11px] font-bold">Chat with notes</span>
+        <span className="text-[11px] font-bold truncate">
+          {focusFile ? `Chat — ${focusFile}` : "Chat with notes"}
+        </span>
         <button
           onClick={onClose}
           aria-label="Close chat"
-          className="w-4 h-4 bg-[#C0C0C0] text-black text-[11px] flex items-center justify-center leading-none shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040]"
+          className="w-4 h-4 bg-[#C0C0C0] text-black text-[11px] flex items-center justify-center leading-none shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040] shrink-0"
         >
           ×
         </button>
       </div>
+      {focusFile && (
+        <div className="bg-[#FFFF66] border-b border-black px-2 py-1 text-[10px] font-sans text-black">
+          Focused on <span className="font-bold">{focusFile}</span> — Claude will prioritize this draft.
+        </div>
+      )}
 
       <div className="bg-white flex-1 flex flex-col m-1 shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF] overflow-hidden">
         <div

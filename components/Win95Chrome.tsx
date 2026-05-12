@@ -93,42 +93,99 @@ export function MenuBar({ activeMenu }: { activeMenu?: string }) {
   );
 }
 
+export type DocFormat = {
+  font: string;
+  size: number;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+};
+
+export const DEFAULT_FORMAT: DocFormat = {
+  font: "Times New Roman",
+  size: 14,
+  bold: false,
+  italic: false,
+  underline: false,
+};
+
+export const FONT_OPTIONS = [
+  "Times New Roman",
+  "Arial",
+  "Courier New",
+  "Georgia",
+];
+
+export const SIZE_OPTIONS = [10, 12, 14, 16, 18, 20, 24, 28];
+
 export function Toolbar({
   onNewNote,
   onChat,
   chatOpen,
+  format,
+  onFormatChange,
 }: {
   onNewNote: () => void;
   onChat: () => void;
   chatOpen: boolean;
+  format: DocFormat;
+  onFormatChange?: (next: DocFormat) => void;
 }) {
+  const disabled = !onFormatChange;
+  const set = <K extends keyof DocFormat>(k: K, v: DocFormat[K]) => {
+    if (!onFormatChange) return;
+    onFormatChange({ ...format, [k]: v });
+  };
   return (
     <div className="flex items-center gap-1 bg-[#C0C0C0] px-1 py-[3px] h-[29px] border-b border-[#808080]">
       <ToolGroup>
-        <ToolIcon glyph="N" title="New" />
-        <ToolIcon glyph="O" title="Open" />
-        <ToolIcon glyph="S" title="Save" />
+        <ToolIcon glyph="+" title="New note" onClick={onNewNote} />
       </ToolGroup>
+      <Divider />
+      <Select
+        width={140}
+        value={format.font}
+        options={FONT_OPTIONS}
+        disabled={disabled}
+        onChange={(v) => set("font", v)}
+        title="Font"
+      />
+      <Select
+        width={56}
+        value={String(format.size)}
+        options={SIZE_OPTIONS.map(String)}
+        disabled={disabled}
+        onChange={(v) => set("size", Number(v))}
+        title="Font size"
+      />
       <Divider />
       <ToolGroup>
-        <ToolIcon glyph="✂" title="Cut" />
-        <ToolIcon glyph="□" title="Copy" />
-        <ToolIcon glyph="▭" title="Paste" />
+        <ToolIcon
+          glyph="B"
+          bold
+          title="Bold"
+          active={format.bold}
+          disabled={disabled}
+          onClick={() => set("bold", !format.bold)}
+        />
+        <ToolIcon
+          glyph="I"
+          italic
+          title="Italic"
+          active={format.italic}
+          disabled={disabled}
+          onClick={() => set("italic", !format.italic)}
+        />
+        <ToolIcon
+          glyph="U"
+          underline
+          title="Underline"
+          active={format.underline}
+          disabled={disabled}
+          onClick={() => set("underline", !format.underline)}
+        />
       </ToolGroup>
       <Divider />
-      <Select width={148} value="Heading 1" />
-      <Select width={128} value="Times New Roman" />
-      <Select width={44} value="12" />
-      <Divider />
-      <ToolGroup>
-        <ToolIcon glyph="B" bold title="Bold" />
-        <ToolIcon glyph="I" italic title="Italic" />
-        <ToolIcon glyph="U" underline title="Underline" />
-      </ToolGroup>
-      <Divider />
-      <Win95Button onClick={onNewNote} className="!h-[22px]">
-        <span className="text-[#008000] mr-1">+</span> New note
-      </Win95Button>
       <Win95Button onClick={onChat} active={chatOpen} className="!h-[22px]">
         Chat...
       </Win95Button>
@@ -150,15 +207,36 @@ function ToolIcon({
   italic,
   underline,
   title,
+  active,
+  disabled,
+  onClick,
 }: {
   glyph: string;
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
   title?: string;
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <Win95Button title={title} className="!w-[22px] !h-[22px] !px-0">
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`
+        w-[22px] h-[22px] px-0 bg-[#C0C0C0] text-black flex items-center justify-center leading-none
+        ${
+          active
+            ? "shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF]"
+            : "shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040]"
+        }
+        active:shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF]
+        disabled:text-[#808080] disabled:cursor-not-allowed
+      `}
+    >
       <span
         className={`text-[12px] leading-none ${bold ? "font-bold" : ""} ${
           italic ? "italic" : ""
@@ -166,18 +244,48 @@ function ToolIcon({
       >
         {glyph}
       </span>
-    </Win95Button>
+    </button>
   );
 }
 
-function Select({ width, value }: { width: number; value: string }) {
+function Select({
+  width,
+  value,
+  options,
+  onChange,
+  disabled,
+  title,
+}: {
+  width: number;
+  value: string;
+  options: string[];
+  onChange?: (v: string) => void;
+  disabled?: boolean;
+  title?: string;
+}) {
   return (
     <div
       style={{ width }}
-      className="flex items-center justify-between h-[20px] bg-white border border-[#808080] shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF] px-1 text-[11px] font-sans"
+      className={`relative flex items-center h-[20px] bg-white border border-[#808080] shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF] text-[11px] font-sans ${
+        disabled ? "opacity-60" : ""
+      }`}
+      title={title}
     >
-      <span className="truncate">{value}</span>
-      <span className="text-[8px]">▼</span>
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange?.(e.target.value)}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+      >
+        {options.includes(value) ? null : <option value={value}>{value}</option>}
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+      <span className="px-1 truncate flex-1 pointer-events-none">{value}</span>
+      <span className="text-[8px] px-1 pointer-events-none">▼</span>
     </div>
   );
 }

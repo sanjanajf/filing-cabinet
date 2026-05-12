@@ -10,6 +10,7 @@ type Props = {
   onRenameFolder: (slug: string, name: string) => void;
   onRenameCount: (slug: string, label: string) => void;
   onNewFolder: () => void;
+  onNewNoteInFolder: (slug: string) => void;
 };
 
 export function FolderGrid({
@@ -19,6 +20,7 @@ export function FolderGrid({
   onRenameFolder,
   onRenameCount,
   onNewFolder,
+  onNewNoteInFolder,
 }: Props) {
   return (
     <div className="flex flex-wrap gap-2 py-4">
@@ -30,6 +32,7 @@ export function FolderGrid({
           onOpen={() => onOpen(f.slug)}
           onRenameName={(name) => onRenameFolder(f.slug, name)}
           onRenameCount={(label) => onRenameCount(f.slug, label)}
+          onNewNote={() => onNewNoteInFolder(f.slug)}
         />
       ))}
       <NewFolderTile onClick={onNewFolder} />
@@ -43,20 +46,34 @@ function FolderTile({
   onOpen,
   onRenameName,
   onRenameCount,
+  onNewNote,
 }: {
   folder: FolderMeta;
   selected: boolean;
   onOpen: () => void;
   onRenameName: (n: string) => void;
   onRenameCount: (n: string) => void;
+  onNewNote: () => void;
 }) {
   return (
     <div
-      className={`flex flex-col items-center w-24 py-1 px-1 gap-1 shrink-0 cursor-pointer ${
+      className={`group relative flex flex-col items-center w-24 py-1 px-1 gap-1 shrink-0 cursor-pointer ${
         selected ? "bg-[#000080] border border-dotted border-white" : ""
       }`}
       onDoubleClick={onOpen}
     >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onNewNote();
+        }}
+        title={`New note in ${folder.name}`}
+        aria-label={`New note in ${folder.name}`}
+        className="absolute top-0 right-0 w-4 h-4 bg-[#C0C0C0] text-[#008000] text-[12px] font-bold leading-none flex items-center justify-center shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040] active:shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF] opacity-0 group-hover:opacity-100 focus:opacity-100"
+      >
+        +
+      </button>
       <div className="w-16 h-[52px] relative shrink-0" onClick={onOpen}>
         <div className="top-1 left-0.5 w-[26px] h-2 absolute bg-[#FFE600] border-2 border-black" />
         <div

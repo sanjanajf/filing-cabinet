@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  MenuBar,
+  DEFAULT_FORMAT,
   Ruler,
   StatusBar,
   TitleBar,
   Toolbar,
+  type DocFormat,
 } from "@/components/Win95Chrome";
 import { FolderGrid } from "@/components/FolderGrid";
 import { OpenFolder } from "@/components/OpenFolder";
@@ -56,6 +57,7 @@ export default function Page() {
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [editingFile, setEditingFile] = useState<string | null>(null);
+  const [format, setFormat] = useState<DocFormat>(DEFAULT_FORMAT);
   const [saved, setSaved] = useState(true);
   const now = useClock();
 
@@ -197,24 +199,32 @@ export default function Page() {
     }
   }, [fetchData]);
 
+  const handleNewNoteInFolder = useCallback(
+    async (slug: string) => {
+      setSaved(false);
+      try {
+        const res = await fetch("/api/files", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ op: "new-note", folder: slug }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Create failed");
+        setOpenSlug(slug);
+        await fetchData(slug);
+        setEditingFile(data.relPath);
+        setSaved(true);
+      } catch (err) {
+        setLoadError(String(err));
+      }
+    },
+    [fetchData]
+  );
+
   const handleNewNote = useCallback(async () => {
     if (!openSlug) return;
-    setSaved(false);
-    try {
-      const res = await fetch("/api/files", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ op: "new-note", folder: openSlug }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Create failed");
-      await fetchData(openSlug);
-      setEditingFile(data.relPath);
-      setSaved(true);
-    } catch (err) {
-      setLoadError(String(err));
-    }
-  }, [fetchData, openSlug]);
+    await handleNewNoteInFolder(openSlug);
+  }, [handleNewNoteInFolder, openSlug]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -234,11 +244,12 @@ export default function Page() {
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#008080] font-sans text-black">
       <TitleBar title="Filing cabinet" />
-      <MenuBar activeMenu="Desk" />
       <Toolbar
         onNewNote={handleNewNote}
         onChat={() => setChatOpen((v) => !v)}
         chatOpen={chatOpen}
+        format={format}
+        onFormatChange={editingFile ? setFormat : undefined}
       />
       <Ruler />
 
@@ -246,7 +257,12 @@ export default function Page() {
         <div className="flex-1 p-2 overflow-hidden flex">
           <div className="flex-1 bg-white shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040,1px_1px_0_#000000] overflow-auto">
             {editingFile ? (
-              <Editor slug={editingFile} onClose={() => setEditingFile(null)} />
+              <Editor
+                slug={editingFile}
+                onClose={() => setEditingFile(null)}
+                format={format}
+                onFormatLoaded={setFormat}
+              />
             ) : (
               <div className="max-w-[980px] mx-auto px-10 py-6">
                 {loadError && (
@@ -278,6 +294,7 @@ export default function Page() {
                       onRenameFolder={handleRenameFolder}
                       onRenameCount={handleRenameCount}
                       onNewFolder={handleNewFolder}
+                      onNewNoteInFolder={handleNewNoteInFolder}
                     />
                     <div className="border-t border-dotted border-[#808080]" />
                     <OpenFolder
@@ -299,7 +316,7 @@ export default function Page() {
 
           {chatOpen && (
             <div className="w-[320px] ml-2 shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040,1px_1px_0_#000000]">
-              <Chat onClose={() => setChatOpen(false)} />
+              <Chat onClose={() => setChatOpen(false)} focusFile={editingFile} />
             </div>
           )}
         </div>

@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { DEFAULT_FORMAT, type DocFormat } from "./Win95Chrome";
 
 type Props = {
   slug: string;
   onClose: () => void;
+  format: DocFormat;
+  onFormatLoaded: (format: DocFormat) => void;
 };
 
-export function Editor({ slug, onClose }: Props) {
+export function Editor({ slug, onClose, format, onFormatLoaded }: Props) {
   const [content, setContent] = useState<string | null>(null);
   const [savedContent, setSavedContent] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "saving" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
+  const savedFormatRef = useRef<DocFormat>(format);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,6 +34,9 @@ export function Editor({ slug, onClose }: Props) {
         } else {
           setContent(data.content);
           setSavedContent(data.content);
+          const loaded: DocFormat = { ...DEFAULT_FORMAT, ...(data.format ?? {}) };
+          savedFormatRef.current = loaded;
+          onFormatLoaded(loaded);
           setStatus("idle");
         }
       })
@@ -41,7 +48,25 @@ export function Editor({ slug, onClose }: Props) {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
+
+  useEffect(() => {
+    if (status !== "idle") return;
+    if (sameFormat(format, savedFormatRef.current)) return;
+    const id = setTimeout(() => {
+      fetch("/api/notes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "format", relPath: slug, format }),
+      })
+        .then((r) => {
+          if (r.ok) savedFormatRef.current = format;
+        })
+        .catch(() => {});
+    }, 300);
+    return () => clearTimeout(id);
+  }, [format, slug, status]);
 
   async function save() {
     if (content === null || content === savedContent) return;
@@ -67,6 +92,15 @@ export function Editor({ slug, onClose }: Props) {
   }
 
   const dirty = content !== null && content !== savedContent;
+
+  const textareaStyle = {
+    fontFamily: `"${format.font}", serif`,
+    fontSize: `${format.size}px`,
+    lineHeight: `${Math.round(format.size * 1.45)}px`,
+    fontWeight: format.bold ? 700 : 400,
+    fontStyle: format.italic ? "italic" : "normal",
+    textDecoration: format.underline ? "underline" : "none",
+  };
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -100,10 +134,21 @@ export function Editor({ slug, onClose }: Props) {
         onChange={(e) => setContent(e.target.value)}
         onBlur={save}
         disabled={content === null}
-        className="flex-1 p-6 font-['Times_New_Roman',serif] text-[14px] leading-[20px] resize-none outline-none w-full text-black"
+        style={textareaStyle}
+        className="flex-1 p-6 resize-none outline-none w-full text-black"
         placeholder={content === null ? "" : "Start writing…"}
         spellCheck={true}
       />
     </div>
+  );
+}
+
+function sameFormat(a: DocFormat, b: DocFormat) {
+  return (
+    a.font === b.font &&
+    a.size === b.size &&
+    a.bold === b.bold &&
+    a.italic === b.italic &&
+    a.underline === b.underline
   );
 }

@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { messages } = await req.json();
+  const { messages, focusFile } = await req.json();
   if (!Array.isArray(messages)) {
     return NextResponse.json({ error: "messages array required" }, { status: 400 });
   }
@@ -35,21 +35,30 @@ export async function POST(req: NextRequest) {
   const files = await readAllContent();
   const corpus = buildCorpusBlock(files);
 
+  const focused = typeof focusFile === "string"
+    ? files.find((f) => f.relPath === focusFile)
+    : undefined;
+
+  const system: Anthropic.TextBlockParam[] = [
+    { type: "text", text: SYSTEM_PROMPT },
+    {
+      type: "text",
+      text: `<corpus>\n${corpus}\n</corpus>`,
+      cache_control: { type: "ephemeral" },
+    },
+  ];
+  if (focused) {
+    system.push({
+      type: "text",
+      text: `<focused_draft path="${focused.relPath}" title="${focused.title}">\nThe user is currently editing this draft. Unless they ask otherwise, prioritize this piece in your responses — quote from it, react to it, suggest concrete edits.\n\n${focused.content}\n</focused_draft>`,
+    });
+  }
+
   try {
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 2048,
-      system: [
-        {
-          type: "text",
-          text: SYSTEM_PROMPT,
-        },
-        {
-          type: "text",
-          text: `<corpus>\n${corpus}\n</corpus>`,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
+      system,
       messages,
     });
 
