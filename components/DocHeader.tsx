@@ -24,20 +24,20 @@ export function DocHeader({
   onClickRoot,
 }: Props) {
   return (
-    <div className="flex flex-col pb-3 border-b border-black antialiased">
+    <div className="flex flex-col pb-3 border-b border-black">
       <div className="flex items-baseline gap-4">
         <InlineEdit
           value={docTitle}
           onCommit={onEditTitle}
           selectAllOnFocus
           ariaLabel="Edit document title"
-          className="shrink-0 tracking-[0.04em] font-['Times_New_Roman',serif] font-bold text-black text-[22px] leading-[28px]"
+          className="shrink-0 font-body font-bold text-black text-[22px] leading-[28px] tracking-[0.04em]"
         />
-        <div className="grow text-right font-['Times_New_Roman',serif] italic text-black text-[12px] leading-4">
+        <div className="grow text-right font-body italic text-black text-[12px] leading-4">
           {byline} · {date}
         </div>
       </div>
-      <div className="flex items-center pt-2 gap-2 text-[11px] leading-[14px] font-sans">
+      <div className="flex items-center pt-2 gap-2 font-chrome text-[11px] leading-[14px]">
         <button
           onClick={onClickRoot}
           className="text-[#000080] underline decoration-[1px] underline-offset-2 hover:text-[#0000FF]"

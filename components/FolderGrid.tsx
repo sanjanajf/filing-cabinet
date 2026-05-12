@@ -23,7 +23,7 @@ export function FolderGrid({
   onNewNoteInFolder,
 }: Props) {
   return (
-    <div className="flex flex-wrap gap-2 py-4">
+    <div className="flex flex-wrap py-[18px] gap-2">
       {folders.map((f) => (
         <FolderTile
           key={f.slug}
@@ -57,8 +57,10 @@ function FolderTile({
 }) {
   return (
     <div
-      className={`group relative flex flex-col items-center w-24 py-1 px-1 gap-1 shrink-0 cursor-pointer ${
-        selected ? "bg-[#000080] border border-dotted border-white" : ""
+      className={`group relative flex flex-col items-center w-24 gap-1 shrink-0 cursor-pointer ${
+        selected
+          ? "py-1 px-[2px] bg-[#000080] border border-dotted border-white"
+          : "py-[6px] px-1"
       }`}
       onDoubleClick={onOpen}
     >
@@ -70,27 +72,21 @@ function FolderTile({
         }}
         title={`New note in ${folder.name}`}
         aria-label={`New note in ${folder.name}`}
-        className="absolute top-0 right-0 w-4 h-4 bg-[#C0C0C0] text-[#008000] text-[12px] font-bold leading-none flex items-center justify-center shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040] active:shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF] opacity-0 group-hover:opacity-100 focus:opacity-100"
+        className="absolute top-0 right-0 w-4 h-4 bg-[#C0C0C0] text-[#008000] text-[12px] font-bold leading-none flex items-center justify-center border border-t-white border-l-white border-b-[#404040] border-r-[#404040] active:border-t-[#404040] active:border-l-[#404040] active:border-b-white active:border-r-white opacity-0 group-hover:opacity-100 focus:opacity-100"
       >
         +
       </button>
-      <div className="w-16 h-[52px] relative shrink-0" onClick={onOpen}>
-        <div className="top-1 left-0.5 w-[26px] h-2 absolute bg-[#FFE600] border-2 border-black" />
-        <div
-          className={`top-[10px] left-0 w-16 h-[42px] absolute bg-[#FFE600] border-2 border-black ${
-            selected
-              ? "shadow-[2px_2px_0_#00000088]"
-              : "shadow-[2px_2px_0_#00000055]"
-          }`}
-        />
-        <div className="top-3 left-1 w-14 h-px absolute bg-[#FFFFAA]" />
+      <div className="w-16 h-[52px] relative shrink-0 pixelated" onClick={onOpen}>
+        <div className="absolute top-1 left-[2px] w-[26px] h-2 bg-[#FFE600] border-2 border-black" />
+        <div className="absolute top-[10px] left-0 w-16 h-[42px] bg-[#FFE600] border-2 border-black shadow-[2px_2px_0_#00000055]" />
+        <div className="absolute top-3 left-1 w-14 h-px bg-[#FFFFAA]" />
       </div>
       <InlineEdit
         value={folder.name}
         onCommit={onRenameName}
         ariaLabel={`Rename folder ${folder.name}`}
         selectAllOnFocus
-        className={`text-center font-sans text-[11px] leading-[13px] px-1 ${
+        className={`text-center font-chrome text-[11px] leading-[13px] px-1 ${
           selected ? "text-white" : "text-black"
         }`}
       />
@@ -99,8 +95,8 @@ function FolderTile({
         onCommit={onRenameCount}
         ariaLabel={`Edit ${folder.name} count label`}
         selectAllOnFocus
-        className={`font-sans text-[9px] leading-[12px] px-1 ${
-          selected ? "text-[#C0C0C0]" : "text-[#808080]"
+        className={`font-chrome text-[9px] leading-[12px] px-1 ${
+          selected ? "text-white" : "text-[#808080]"
         }`}
       />
     </div>
@@ -111,15 +107,15 @@ function NewFolderTile({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center w-24 py-1 px-1 gap-1 shrink-0"
+      className="flex flex-col items-center w-24 py-[6px] px-1 gap-1 shrink-0"
     >
-      <div className="w-16 h-[52px] relative shrink-0">
-        <div className="top-1 left-0.5 w-[26px] h-2 absolute bg-white border-2 border-dashed border-[#808080]" />
-        <div className="top-[10px] left-0 w-16 h-[42px] flex items-center justify-center absolute bg-white border-2 border-dashed border-[#808080]">
-          <span className="font-sans text-[#808080] text-2xl leading-none">+</span>
+      <div className="w-16 h-[52px] relative shrink-0 pixelated">
+        <div className="absolute top-1 left-[2px] w-[26px] h-2 bg-white border-2 border-dashed border-[#808080]" />
+        <div className="absolute top-[10px] left-0 w-16 h-[42px] flex items-center justify-center bg-white border-2 border-dashed border-[#808080]">
+          <span className="font-chrome text-[#808080] text-[30px] leading-none">+</span>
         </div>
       </div>
-      <span className="text-center font-sans italic text-[#808080] text-[11px] leading-[13px]">
+      <span className="text-center font-chrome italic text-[#808080] text-[11px] leading-[13px]">
         New folder
       </span>
     </button>

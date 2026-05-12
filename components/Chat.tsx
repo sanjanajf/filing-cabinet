@@ -13,6 +13,11 @@ function nowStamp(): string {
   return `${h}:${m} ${ap}`;
 }
 
+const RAISED =
+  "border border-t-white border-l-white border-b-[#404040] border-r-[#404040]";
+const SUNKEN =
+  "border border-t-[#404040] border-l-[#404040] border-b-white border-r-white";
+
 export function Chat({
   onClose,
   focusFile,
@@ -34,7 +39,10 @@ export function Chat({
     const text = input.trim();
     if (!text || loading) return;
     setError(null);
-    const next = [...messages, { msg: { role: "user" as const, content: text }, at: nowStamp() }];
+    const next = [
+      ...messages,
+      { msg: { role: "user" as const, content: text }, at: nowStamp() },
+    ];
     setMessages(next);
     setInput("");
     setLoading(true);
@@ -64,15 +72,15 @@ export function Chat({
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#C0C0C0]">
-      <div className="flex items-center justify-between bg-[#000080] text-white px-1 h-[22px] select-none">
-        <span className="text-[11px] font-bold truncate">
+    <div className="flex flex-col h-full w-full bg-[#C0C0C0] border-2 border-t-white border-l-white border-b-[#404040] border-r-[#404040]">
+      <div className="flex items-center justify-between bg-[#000080] py-[3px] px-[6px] select-none">
+        <span className="font-chrome font-bold text-[11px] leading-[14px] text-white truncate">
           {focusFile ? `Chat — ${focusFile}` : "Chat with notes"}
         </span>
         <button
           onClick={onClose}
           aria-label="Close chat"
-          className="w-4 h-4 bg-[#C0C0C0] text-black text-[11px] flex items-center justify-center leading-none shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040] shrink-0"
+          className={`w-[14px] h-3 flex items-center justify-center bg-[#C0C0C0] text-black font-chrome text-[11px] leading-none pixelated shrink-0 ${RAISED}`}
         >
           ×
         </button>
@@ -83,47 +91,49 @@ export function Chat({
         </div>
       )}
 
-      <div className="bg-white flex-1 flex flex-col m-1 shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF] overflow-hidden">
+      <div
+        className={`flex-1 m-1 flex flex-col bg-white px-[10px] py-[10px] gap-[10px] overflow-hidden ${SUNKEN}`}
+      >
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto px-3 py-3 space-y-3 text-[12px]"
+          className="flex-1 overflow-y-auto flex flex-col gap-[10px]"
         >
           {messages.length === 0 && !loading && (
-            <div className="text-[11px] text-[#808080] italic font-sans">
+            <div className="font-chrome text-[11px] leading-[14px] italic text-[#808080]">
               Try: &quot;what themes have I been circling?&quot;,
               &quot;summarize my SF writing&quot;, &quot;find action items
               across my notes&quot;
             </div>
           )}
           {messages.map((m, i) => (
-            <div key={i}>
-              <div className="text-[10px] uppercase tracking-wide text-[#808080] font-sans mb-0.5">
+            <div key={i} className="flex flex-col gap-0">
+              <div className="font-chrome text-[10px] leading-3 uppercase tracking-wide text-[#808080]">
                 {m.msg.role === "user" ? "YOU" : "CLAUDE"} · {m.at}
               </div>
-              <div className="whitespace-pre-wrap leading-[16px] text-black font-['Times_New_Roman',serif]">
+              <div className="font-body text-[12px] leading-[17px] text-black whitespace-pre-wrap">
                 {m.msg.content}
               </div>
             </div>
           ))}
           {loading && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-[#808080] font-sans mb-0.5">
+            <div className="flex flex-col gap-0">
+              <div className="font-chrome text-[10px] leading-3 uppercase tracking-wide text-[#808080]">
                 CLAUDE · {nowStamp()}
               </div>
-              <div className="text-[#808080] italic font-['Times_New_Roman',serif]">
+              <div className="font-body italic text-[12px] leading-[17px] text-[#808080]">
                 thinking…
               </div>
             </div>
           )}
           {error && (
-            <div className="text-[11px] text-red-700 bg-[#FFFF66] p-2 font-sans">
+            <div className="font-chrome text-[11px] text-red-800 bg-[#FFFF66] p-2">
               {error}
             </div>
           )}
         </div>
       </div>
 
-      <div className="m-1 mt-0 flex flex-col gap-1">
+      <div className="flex flex-col px-1 pb-1 gap-1">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -134,17 +144,17 @@ export function Chat({
             }
           }}
           placeholder="Ask anything about your notes…"
-          className="w-full bg-white text-[12px] p-1 outline-none font-['Times_New_Roman',serif] resize-none shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF]"
+          className={`w-full h-[60px] py-[6px] px-2 bg-white font-body text-[12px] leading-[16px] text-black outline-none resize-none placeholder:text-[#808080] placeholder:italic ${SUNKEN}`}
           rows={3}
         />
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-[#404040] font-sans">
+          <span className="font-chrome text-[10px] leading-3 text-[#808080]">
             Ctrl+Enter to send
           </span>
           <button
             onClick={send}
             disabled={loading || !input.trim()}
-            className="bg-[#C0C0C0] text-black text-[11px] px-3 h-[20px] font-sans shadow-[inset_1px_1px_0_#FFFFFF,inset_-1px_-1px_0_#404040] active:shadow-[inset_1px_1px_0_#404040,inset_-1px_-1px_0_#FFFFFF] disabled:text-[#808080]"
+            className={`py-[3px] px-3 bg-[#C0C0C0] font-chrome text-[11px] leading-[14px] text-black disabled:text-[#808080] ${RAISED} active:border-t-[#404040] active:border-l-[#404040] active:border-b-white active:border-r-white`}
           >
             Send
           </button>
