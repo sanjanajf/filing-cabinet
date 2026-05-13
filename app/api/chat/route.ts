@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import path from "path";
 import Anthropic from "@anthropic-ai/sdk";
-import { readAllContent } from "@/lib/notes";
+import { readAllContent, readMeta } from "@/lib/notes";
 import { resolveApiKey } from "@/lib/config";
 
 const SYSTEM_PROMPT = `You are a reflective, perceptive thinking partner for Sanjana — a writer who edits STATE OF THE ART, works at Y Combinator on Garry's List, and is starting to plan a book.
 
-She is chatting with you about her own corpus of writing: drafts, fragments, observations, book notes, language-learning material, fiction. Below is the entire corpus. Reference specific pieces by title. Quote her own words back when relevant. Surface themes she has been circling but may not have noticed. Be direct and specific — no generic encouragement. Treat her like a writer.
+She is chatting with you about her own corpus of writing: drafts, fragments, observations, book notes, language-learning material, fiction. Below is the subset of her corpus currently in scope (one folder at a time). Reference specific pieces by title. Quote her own words back when relevant. Surface themes she has been circling but may not have noticed. Be direct and specific — no generic encouragement. Treat her like a writer.
 
-If asked about something not present in the corpus, say so plainly.`;
+If asked about something not present in the in-scope corpus, say so plainly and note that only the open folder is loaded.`;
 
 function buildCorpusBlock(
   files: { relPath: string; title: string; content: string }[]
@@ -16,6 +17,15 @@ function buildCorpusBlock(
     (f) => `=== ${f.title} (${f.relPath}) ===\n${f.content}`
   );
   return sections.join("\n\n");
+}
+
+async function resolveScopeFolder(focusFile: string | null): Promise<string | null> {
+  if (focusFile) {
+    const dir = path.dirname(focusFile);
+    if (dir && dir !== "." && dir !== "/") return dir;
+  }
+  const meta = await readMeta();
+  return meta.openFolder ?? null;
 }
 
 export async function POST(req: NextRequest) {
@@ -33,18 +43,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "messages array required" }, { status: 400 });
   }
 
-  const files = await readAllContent();
+  const scopeFolder = await resolveScopeFolder(
+    typeof focusFile === "string" ? focusFile : null
+  );
+
+  const all = await readAllContent();
+  const files = scopeFolder
+    ? all.filter((f) => f.relPath.startsWith(`${scopeFolder}/`))
+    : [];
   const corpus = buildCorpusBlock(files);
 
   const focused = typeof focusFile === "string"
-    ? files.find((f) => f.relPath === focusFile)
+    ? all.find((f) => f.relPath === focusFile)
     : undefined;
+
+  const scopeHeader = scopeFolder
+    ? `<scope folder="${scopeFolder}" file_count="${files.length}" />`
+    : `<scope folder="(none — open a folder to load its notes)" file_count="0" />`;
 
   const system: Anthropic.TextBlockParam[] = [
     { type: "text", text: SYSTEM_PROMPT },
     {
       type: "text",
-      text: `<corpus>\n${corpus}\n</corpus>`,
+      text: `${scopeHeader}\n<corpus>\n${corpus}\n</corpus>`,
       cache_control: { type: "ephemeral" },
     },
   ];
