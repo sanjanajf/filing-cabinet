@@ -302,6 +302,115 @@ export async function listNotes(): Promise<NoteMeta[]> {
   return notes;
 }
 
+export type SearchHit = {
+  relPath: string;
+  folder: string;
+  filename: string;
+  title: string;
+  snippet: string;
+  matchedIn: "filename" | "title" | "body";
+  matchOffset: number;
+  mtime: number;
+};
+
+function snippetAround(body: string, idx: number, qlen: number): string {
+  const radius = 60;
+  let start = Math.max(0, idx - radius);
+  let end = Math.min(body.length, idx + qlen + radius);
+  let text = body.slice(start, end);
+  text = text.replace(/\s+/g, " ").trim();
+  if (start > 0) text = "…" + text;
+  if (end < body.length) text = text + "…";
+  return text;
+}
+
+export async function searchAll(query: string, limit = 50): Promise<SearchHit[]> {
+  const relPaths = await walk(WRITING_DIR);
+  const q = query.trim().toLowerCase();
+  const hits: SearchHit[] = [];
+  for (const rel of relPaths) {
+    const full = path.join(WRITING_DIR, rel);
+    const stat = await fs.stat(full);
+    const content = await fs.readFile(full, "utf-8");
+    const { body } = parseFrontmatter(content);
+    const title = deriveTitle(rel, content);
+    const slash = rel.indexOf("/");
+    const folder = slash >= 0 ? rel.slice(0, slash) : "";
+    const filename = slash >= 0 ? rel.slice(slash + 1) : rel;
+
+    if (!q) {
+      hits.push({
+        relPath: rel,
+        folder,
+        filename,
+        title,
+        snippet: derivePreview(content),
+        matchedIn: "body",
+        matchOffset: 0,
+        mtime: stat.mtimeMs,
+      });
+      continue;
+    }
+
+    const filenameLower = filename.toLowerCase().replace(/\.md$/, "");
+    const titleLower = title.toLowerCase();
+    const bodyLower = body.toLowerCase();
+
+    let matchedIn: SearchHit["matchedIn"] | null = null;
+    let matchOffset = -1;
+    let snippet = "";
+
+    if (filenameLower.includes(q)) {
+      matchedIn = "filename";
+      matchOffset = filenameLower.indexOf(q);
+      snippet = derivePreview(content);
+    } else if (titleLower.includes(q)) {
+      matchedIn = "title";
+      matchOffset = titleLower.indexOf(q);
+      snippet = derivePreview(content);
+    } else {
+      const i = bodyLower.indexOf(q);
+      if (i >= 0) {
+        matchedIn = "body";
+        matchOffset = i;
+        snippet = snippetAround(body, i, q.length);
+      }
+    }
+
+    if (matchedIn) {
+      hits.push({
+        relPath: rel,
+        folder,
+        filename,
+        title,
+        snippet,
+        matchedIn,
+        matchOffset,
+        mtime: stat.mtimeMs,
+      });
+    }
+  }
+
+  if (!q) {
+    hits.sort((a, b) => b.mtime - a.mtime);
+    return hits.slice(0, limit);
+  }
+
+  const rank = (h: SearchHit) =>
+    h.matchedIn === "filename"
+      ? 0
+      : h.matchedIn === "title"
+      ? 1
+      : 2;
+  hits.sort((a, b) => {
+    const r = rank(a) - rank(b);
+    if (r !== 0) return r;
+    if (a.matchOffset !== b.matchOffset) return a.matchOffset - b.matchOffset;
+    return b.mtime - a.mtime;
+  });
+  return hits.slice(0, limit);
+}
+
 export async function readNote(relPath: string): Promise<string> {
   const full = path.join(WRITING_DIR, safeRel(relPath));
   return fs.readFile(full, "utf-8");
