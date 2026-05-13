@@ -45,7 +45,6 @@ const MENU_ITEMS = [
   "F ormat",
   "Tools",
   "Desk",
-  "Chat",
   "Window",
   "Help",
 ];
@@ -99,15 +98,11 @@ export const SIZE_OPTIONS = [10, 12, 14, 16, 18, 20, 24, 28];
 
 export function Toolbar({
   onNewNote,
-  onChat,
-  chatOpen,
   onSettings,
   format,
   onFormatChange,
 }: {
   onNewNote: () => void;
-  onChat: () => void;
-  chatOpen: boolean;
   onSettings: () => void;
   format: DocFormat;
   onFormatChange?: (next: DocFormat) => void;
@@ -167,7 +162,6 @@ export function Toolbar({
         />
       </ToolGroup>
       <Divider />
-      <ToolbarButton onClick={onChat} active={chatOpen} label="Chat..." />
       <ToolbarButton onClick={onSettings} label="Settings..." />
     </div>
   );

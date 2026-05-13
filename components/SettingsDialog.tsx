@@ -111,7 +111,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               ? "Loading…"
               : status.hasKey
               ? `Current: ${status.maskedKey}`
-              : "No API key set. Chat and auto-categorization need a key."}
+              : "No API key set. Auto-categorization needs a key."}
           </div>
 
           <input
