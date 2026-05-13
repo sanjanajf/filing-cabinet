@@ -1,11 +1,11 @@
 "use client";
 
 import { InlineEdit } from "./InlineEdit";
+import { formatQuote, type Quote } from "@/lib/quotes";
 
 type Props = {
   docTitle: string;
-  byline: string;
-  date: string;
+  quote: Quote;
   rootCrumb: string;
   openCrumb: string | null;
   stats: { folderCount: number; entryCount: number; lineCount: number };
@@ -15,8 +15,7 @@ type Props = {
 
 export function DocHeader({
   docTitle,
-  byline,
-  date,
+  quote,
   rootCrumb,
   openCrumb,
   stats,
@@ -33,8 +32,11 @@ export function DocHeader({
           ariaLabel="Edit document title"
           className="shrink-0 font-body font-bold text-black text-[22px] leading-[28px] tracking-[0.04em]"
         />
-        <div className="grow text-right font-body italic text-black text-[12px] leading-4">
-          {byline} · {date}
+        <div
+          lang={quote.lang}
+          className="grow text-right font-chrome text-black text-[11px] leading-[14px] max-w-[60%] ml-auto"
+        >
+          {formatQuote(quote)} — {quote.author}
         </div>
       </div>
       <div className="flex items-center pt-2 gap-2 font-chrome text-[11px] leading-[14px]">

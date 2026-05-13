@@ -17,6 +17,7 @@ import { Chat } from "@/components/Chat";
 import { PlacementConfirm, type Placement } from "@/components/PlacementConfirm";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import type { FileMeta, FolderMeta, Meta } from "@/lib/notes";
+import { quoteOfDay } from "@/lib/quotes";
 
 type FilesPayload = {
   folders: FolderMeta[];
@@ -42,16 +43,6 @@ function formatTime(d: Date) {
   h = h % 12 || 12;
   return `${h}:${m} ${ap}`;
 }
-
-function formatDate(d: Date) {
-  return d.toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-const BYLINE = "Sanjana Friedman";
 
 export default function Page() {
   const [data, setData] = useState<FilesPayload | null>(null);
@@ -480,8 +471,7 @@ export default function Page() {
                 <>
                   <DocHeader
                     docTitle={data.meta.docTitle}
-                    byline={BYLINE}
-                    date={formatDate(now)}
+                    quote={quoteOfDay(now)}
                     rootCrumb="C:\files\"
                     openCrumb={folder?.slug ?? null}
                     stats={data.stats}
