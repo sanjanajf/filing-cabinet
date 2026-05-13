@@ -45,7 +45,6 @@ const MENU_ITEMS = [
   "F ormat",
   "Tools",
   "Desk",
-  "Chat",
   "Window",
   "Help",
 ];
@@ -99,15 +98,11 @@ export const SIZE_OPTIONS = [10, 12, 14, 16, 18, 20, 24, 28];
 
 export function Toolbar({
   onNewNote,
-  onChat,
-  chatOpen,
   onSettings,
   format,
   onFormatChange,
 }: {
   onNewNote: () => void;
-  onChat: () => void;
-  chatOpen: boolean;
   onSettings: () => void;
   format: DocFormat;
   onFormatChange?: (next: DocFormat) => void;
@@ -167,7 +162,6 @@ export function Toolbar({
         />
       </ToolGroup>
       <Divider />
-      <ToolbarButton onClick={onChat} active={chatOpen} label="Chat..." />
       <ToolbarButton onClick={onSettings} label="Settings..." />
     </div>
   );
@@ -282,18 +276,14 @@ function Select({
 function ToolbarButton({
   label,
   onClick,
-  active,
 }: {
   label: string;
   onClick?: () => void;
-  active?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center justify-center py-[3px] px-[10px] h-[22px] bg-[#C0C0C0] text-black font-chrome text-[11px] leading-[14px] cursor-default ${
-        active ? SUNKEN : RAISED
-      } active:border-t-[#404040] active:border-l-[#404040] active:border-b-white active:border-r-white`}
+      className={`flex items-center justify-center py-[3px] px-[10px] h-[22px] bg-[#C0C0C0] text-black font-chrome text-[11px] leading-[14px] cursor-default ${RAISED} active:border-t-[#404040] active:border-l-[#404040] active:border-b-white active:border-r-white`}
     >
       {label}
     </button>
