@@ -1,4 +1,4 @@
-"""Generate a drawer app icon (1024x1024 PNG) in the project's Win95-ish style."""
+"""Generate the Workspace app icon — a drawer shape (1024x1024 PNG) in Win95-ish style."""
 from PIL import Image, ImageDraw
 import os
 

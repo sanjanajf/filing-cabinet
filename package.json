@@ -1,5 +1,5 @@
 {
-  "name": "drawer",
+  "name": "workspace",
   "version": "0.1.0",
   "private": true,
   "main": "electron/main.js",
@@ -29,8 +29,8 @@
     "typescript": "^5"
   },
   "build": {
-    "appId": "com.sanjana.drawer",
-    "productName": "Drawer",
+    "appId": "com.sanjana.workspace",
+    "productName": "Workspace",
     "directories": {
       "buildResources": "build",
       "output": "dist"

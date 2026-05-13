@@ -2,13 +2,31 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-const CONFIG_PATH = path.join(os.homedir(), ".drawer", "config.json");
+const CONFIG_PATH = path.join(os.homedir(), ".workspace", "config.json");
+const LEGACY_CONFIG_PATH = path.join(os.homedir(), ".drawer", "config.json");
 
 type Config = {
   anthropicApiKey?: string;
 };
 
+function migrateLegacyConfig(): void {
+  if (fs.existsSync(CONFIG_PATH)) return;
+  if (!fs.existsSync(LEGACY_CONFIG_PATH)) return;
+  try {
+    fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
+    fs.renameSync(LEGACY_CONFIG_PATH, CONFIG_PATH);
+    try {
+      fs.rmdirSync(path.dirname(LEGACY_CONFIG_PATH));
+    } catch {
+      // legacy dir not empty; leave it alone
+    }
+  } catch {
+    // migration is best-effort
+  }
+}
+
 function readConfig(): Config {
+  migrateLegacyConfig();
   try {
     return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8")) as Config;
   } catch {

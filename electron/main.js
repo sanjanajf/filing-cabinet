@@ -2,6 +2,10 @@ const { app, BrowserWindow, shell } = require("electron");
 const path = require("path");
 const net = require("net");
 
+// Lock in the app name before requiring Next.js's standalone server, which
+// mutates process.title to "next-server (vX.Y.Z)" and chdirs out of our dir.
+app.setName("Workspace");
+
 function getFreePort() {
   return new Promise((resolve, reject) => {
     const srv = net.createServer();
@@ -44,6 +48,19 @@ async function startNextServer() {
 
   process.chdir(standaloneDir);
   require(path.join(standaloneDir, "server.js"));
+  // Next.js's standalone server sets process.title to "next-server (vX.Y.Z)",
+  // which leaks into the macOS menu-bar title for unbundled Electron runs.
+  // Re-assert our name, and lock the property so nothing can change it back.
+  process.title = "Workspace";
+  try {
+    Object.defineProperty(process, "title", {
+      value: "Workspace",
+      writable: false,
+      configurable: false,
+    });
+  } catch {
+    // best-effort — if another module already locked it, leave it alone
+  }
   await waitForPort(port);
   return port;
 }
@@ -53,7 +70,7 @@ async function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 820,
-    title: "Drawer",
+    title: "Workspace",
     backgroundColor: "#008080",
     webPreferences: {
       contextIsolation: true,
