@@ -1,6 +1,7 @@
 "use client";
 
 import { InlineEdit } from "./InlineEdit";
+import { SpinningGlobe } from "./RetroIcons";
 import { formatQuote, type Quote } from "@/lib/quotes";
 
 type Props = {
@@ -25,13 +26,16 @@ export function DocHeader({
   return (
     <div className="flex flex-col pb-3 border-b border-black">
       <div className="flex items-baseline gap-4">
-        <InlineEdit
-          value={docTitle}
-          onCommit={onEditTitle}
-          selectAllOnFocus
-          ariaLabel="Edit document title"
-          className="shrink-0 font-body font-bold text-black text-[22px] leading-[28px] tracking-[0.04em]"
-        />
+        <div className="flex items-center gap-2 shrink-0">
+          <SpinningGlobe />
+          <InlineEdit
+            value={docTitle}
+            onCommit={onEditTitle}
+            selectAllOnFocus
+            ariaLabel="Edit document title"
+            className="font-body font-bold text-black text-[22px] leading-[28px] tracking-[0.04em]"
+          />
+        </div>
         <div
           lang={quote.lang}
           className="grow text-right font-chrome text-black text-[11px] leading-[14px] max-w-[60%] ml-auto"
