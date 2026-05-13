@@ -59,3 +59,17 @@ textarea {
   outline: 1px dotted #000000;
   outline-offset: 1px;
 }
+
+@keyframes globe-spin {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-16px);
+  }
+}
+
+.globe-spin {
+  animation: globe-spin 6s linear infinite;
+}
+
