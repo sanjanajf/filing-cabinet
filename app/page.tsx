@@ -13,7 +13,6 @@ import { FolderGrid } from "@/components/FolderGrid";
 import { OpenFolder } from "@/components/OpenFolder";
 import { DocHeader } from "@/components/DocHeader";
 import { Editor } from "@/components/Editor";
-import { Chat } from "@/components/Chat";
 import { PlacementConfirm, type Placement } from "@/components/PlacementConfirm";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { SearchDialog } from "@/components/SearchDialog";
@@ -49,7 +48,6 @@ export default function Page() {
   const [data, setData] = useState<FilesPayload | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [openSlug, setOpenSlug] = useState<string | null>(null);
-  const [chatOpen, setChatOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [editingFile, setEditingFile] = useState<string | null>(null);
@@ -272,10 +270,6 @@ export default function Page() {
         e.preventDefault();
         handleNewNote();
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === "/") {
-        e.preventDefault();
-        setChatOpen((v) => !v);
-      }
       if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
         e.preventDefault();
         setSearchOpen(true);
@@ -439,8 +433,6 @@ export default function Page() {
       )}
       <Toolbar
         onNewNote={handleNewNote}
-        onChat={() => setChatOpen((v) => !v)}
-        chatOpen={chatOpen}
         onSettings={() => setSettingsOpen(true)}
         format={activeFormat}
         onFormatChange={handleFormatChange}
@@ -511,15 +503,6 @@ export default function Page() {
           )}
         </div>
 
-        {chatOpen && (
-          <div className="w-[320px] shrink-0">
-            <Chat
-              onClose={() => setChatOpen(false)}
-              focusFile={editingFile}
-              onMissingKey={() => setSettingsOpen(true)}
-            />
-          </div>
-        )}
       </div>
 
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
