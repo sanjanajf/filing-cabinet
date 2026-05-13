@@ -16,6 +16,7 @@ import { Editor } from "@/components/Editor";
 import { Chat } from "@/components/Chat";
 import { PlacementConfirm, type Placement } from "@/components/PlacementConfirm";
 import { SettingsDialog } from "@/components/SettingsDialog";
+import { SearchDialog } from "@/components/SearchDialog";
 import type { FileMeta, FolderMeta, Meta } from "@/lib/notes";
 import { quoteOfDay } from "@/lib/quotes";
 
@@ -50,6 +51,7 @@ export default function Page() {
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [editingFile, setEditingFile] = useState<string | null>(null);
   const [defaultFormat, setDefaultFormat] = useState<DocFormat>(DEFAULT_FORMAT);
   const [noteFormat, setNoteFormat] = useState<DocFormat>(DEFAULT_FORMAT);
@@ -273,6 +275,10 @@ export default function Page() {
       if ((e.metaKey || e.ctrlKey) && e.key === "/") {
         e.preventDefault();
         setChatOpen((v) => !v);
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setSearchOpen(true);
       }
     }
     window.addEventListener("keydown", onKey);
@@ -517,6 +523,18 @@ export default function Page() {
       </div>
 
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
+
+      {searchOpen && (
+        <SearchDialog
+          onClose={() => setSearchOpen(false)}
+          onOpenFile={(relPath) => {
+            const slash = relPath.indexOf("/");
+            const folder = slash >= 0 ? relPath.slice(0, slash) : null;
+            if (folder) setOpenSlug(folder);
+            setEditingFile(relPath);
+          }}
+        />
+      )}
 
       <StatusBar
         page={1}
