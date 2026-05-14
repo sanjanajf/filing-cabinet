@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import type { FolderMeta } from "@/lib/notes";
 import { InlineEdit } from "./InlineEdit";
+import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
 
 type Props = {
   folders: FolderMeta[];
@@ -11,6 +13,7 @@ type Props = {
   onRenameCount: (slug: string, label: string) => void;
   onNewFolder: () => void;
   onNewNoteInFolder: (slug: string) => void;
+  onExportFolder: (slug: string) => void;
 };
 
 export function FolderGrid({
@@ -21,7 +24,12 @@ export function FolderGrid({
   onRenameCount,
   onNewFolder,
   onNewNoteInFolder,
+  onExportFolder,
 }: Props) {
+  const [menu, setMenu] = useState<{ x: number; y: number; slug: string } | null>(
+    null
+  );
+
   return (
     <div className="flex flex-wrap py-[18px] gap-2">
       {folders.map((f) => (
@@ -33,9 +41,29 @@ export function FolderGrid({
           onRenameName={(name) => onRenameFolder(f.slug, name)}
           onRenameCount={(label) => onRenameCount(f.slug, label)}
           onNewNote={() => onNewNoteInFolder(f.slug)}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setMenu({ x: e.clientX, y: e.clientY, slug: f.slug });
+          }}
         />
       ))}
       <NewFolderTile onClick={onNewFolder} />
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={
+            [
+              {
+                label: "Export folder…",
+                onClick: () => onExportFolder(menu.slug),
+              },
+            ] satisfies ContextMenuItem[]
+          }
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   );
 }
@@ -47,6 +75,7 @@ function FolderTile({
   onRenameName,
   onRenameCount,
   onNewNote,
+  onContextMenu,
 }: {
   folder: FolderMeta;
   selected: boolean;
@@ -54,6 +83,7 @@ function FolderTile({
   onRenameName: (n: string) => void;
   onRenameCount: (n: string) => void;
   onNewNote: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }) {
   return (
     <div
@@ -63,6 +93,7 @@ function FolderTile({
           : "py-[6px] px-1"
       }`}
       onClick={onOpen}
+      onContextMenu={onContextMenu}
     >
       <button
         type="button"
