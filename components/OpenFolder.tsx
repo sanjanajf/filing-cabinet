@@ -8,6 +8,7 @@ import { TrashGlyph } from "./RetroIcons";
 
 type Props = {
   folder: FolderMeta | null;
+  folders: FolderMeta[];
   files: FileMeta[];
   totalLines: number;
   lastOpenedLabel: string;
@@ -16,6 +17,7 @@ type Props = {
   onEditSummary: (relPath: string, summary: string) => void;
   onToggleHighlight: (relPath: string) => void;
   onDeleteFile: (relPath: string) => void;
+  onMoveFile: (relPath: string, folderSlug: string) => void;
   onNewNote: () => void;
   onUpload: (files: FileList) => void;
   onExportFile: (relPath: string) => void;
@@ -23,6 +25,7 @@ type Props = {
 
 export function OpenFolder({
   folder,
+  folders,
   files,
   totalLines,
   lastOpenedLabel,
@@ -31,6 +34,7 @@ export function OpenFolder({
   onEditSummary,
   onToggleHighlight,
   onDeleteFile,
+  onMoveFile,
   onNewNote,
   onUpload,
   onExportFile,
@@ -103,10 +107,11 @@ export function OpenFolder({
         <ContextMenu
           x={menu.x}
           y={menu.y}
-          items={fileMenuItems(menu.relPath, {
+          items={fileMenuItems(menu.relPath, folder.slug, folders, {
             onOpenFile,
             onExportFile,
             onDeleteFile,
+            onMoveFile,
           })}
           onClose={() => setMenu(null)}
         />
@@ -117,14 +122,26 @@ export function OpenFolder({
 
 function fileMenuItems(
   relPath: string,
+  currentFolderSlug: string,
+  folders: FolderMeta[],
   handlers: {
     onOpenFile: (relPath: string) => void;
     onExportFile: (relPath: string) => void;
     onDeleteFile: (relPath: string) => void;
+    onMoveFile: (relPath: string, folderSlug: string) => void;
   }
 ): ContextMenuItem[] {
+  const otherFolders = folders.filter((f) => f.slug !== currentFolderSlug);
+  const moveSubmenu: ContextMenuItem[] = otherFolders.length
+    ? otherFolders.map((f) => ({
+        label: f.name,
+        onClick: () => handlers.onMoveFile(relPath, f.slug),
+      }))
+    : [{ label: "(no other folders)", disabled: true }];
+
   return [
     { label: "Open", onClick: () => handlers.onOpenFile(relPath) },
+    { label: "Move to…", submenu: moveSubmenu },
     { label: "Export…", onClick: () => handlers.onExportFile(relPath) },
     {
       label: "Delete",

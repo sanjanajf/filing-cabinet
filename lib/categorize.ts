@@ -9,11 +9,16 @@ export type FolderSuggestion = {
 };
 
 const SYSTEM = `You place a captured note into a personal writing filing cabinet for Sanjana — a writer.
-Look at the filename and the first chunk of content. Pick the single best existing folder, or propose a new one if nothing fits well.
+Look at the filename and the first chunk of content. Pick the single best EXISTING folder.
+
 Reply with ONLY a single JSON object on one line, no prose, no markdown fence:
 {"slug":"folder-slug","label":"Display Label","isNew":false}
-- If you propose a new folder, set isNew=true and pick a 2-3 word kebab-case slug.
-- Prefer existing folders when there's a plausible match. Only propose a new folder if none fit.`;
+
+Rules:
+- STRONGLY prefer an existing folder. Even a loose thematic match is better than a new folder.
+- Set isNew=false and use one of the existing slugs verbatim whenever any existing folder is a plausible home — including broad catch-alls like "inbox", "notes", "misc", "drafts", or "research" if one exists.
+- Only set isNew=true when NO existing folder is even tangentially related AND the document represents a clearly distinct ongoing topic (not a one-off). When in doubt, pick an existing folder.
+- If proposing a new folder is truly justified, use a 2-3 word kebab-case slug.`;
 
 export async function suggestFolder(
   text: string,
