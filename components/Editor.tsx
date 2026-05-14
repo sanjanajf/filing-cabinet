@@ -12,6 +12,7 @@ type Props = {
   onFormatLoaded: (format: DocFormat) => void;
   outlineVisible: boolean;
   onOutlineToggle: () => void;
+  onExport: (relPath: string) => void;
 };
 
 type Mode = "read" | "edit";
@@ -23,6 +24,7 @@ export function Editor({
   onFormatLoaded,
   outlineVisible,
   onOutlineToggle,
+  onExport,
 }: Props) {
   const [content, setContent] = useState<string | null>(null);
   const [savedContent, setSavedContent] = useState<string | null>(null);
@@ -190,6 +192,13 @@ export function Editor({
             className="text-[11px] font-sans px-2 py-px border border-t-white border-l-white border-b-[#404040] border-r-[#404040] bg-[#FFFF66] disabled:opacity-50 disabled:cursor-not-allowed active:border-t-[#404040] active:border-l-[#404040] active:border-b-white active:border-r-white"
           >
             highlight
+          </button>
+          <button
+            onClick={() => onExport(slug)}
+            title="Export this document"
+            className="text-[11px] font-sans px-2 py-px border border-t-white border-l-white border-b-[#404040] border-r-[#404040] bg-[#C0C0C0] active:border-t-[#404040] active:border-l-[#404040] active:border-b-white active:border-r-white"
+          >
+            export…
           </button>
         </div>
         <div className="font-sans text-[11px] text-[#404040] truncate flex-1 text-center">

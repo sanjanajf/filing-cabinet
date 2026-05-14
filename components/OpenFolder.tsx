@@ -18,6 +18,7 @@ type Props = {
   onDeleteFile: (relPath: string) => void;
   onNewNote: () => void;
   onUpload: (files: FileList) => void;
+  onExportFile: (relPath: string) => void;
 };
 
 export function OpenFolder({
@@ -32,13 +33,12 @@ export function OpenFolder({
   onDeleteFile,
   onNewNote,
   onUpload,
+  onExportFile,
 }: Props) {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
-  const [menu, setMenu] = useState<{
-    x: number;
-    y: number;
-    relPath: string;
-  } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; relPath: string } | null>(
+    null
+  );
   if (!folder) return null;
 
   return (
@@ -65,7 +65,10 @@ export function OpenFolder({
             onEditSummary={(s) => onEditSummary(f.relPath, s)}
             onToggleHighlight={() => onToggleHighlight(f.relPath)}
             onDelete={() => onDeleteFile(f.relPath)}
-            onContextMenu={(x, y) => setMenu({ x, y, relPath: f.relPath })}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setMenu({ x: e.clientX, y: e.clientY, relPath: f.relPath });
+            }}
           />
         ))}
         <div className="pt-[6px] flex flex-col gap-1">
@@ -100,7 +103,11 @@ export function OpenFolder({
         <ContextMenu
           x={menu.x}
           y={menu.y}
-          items={fileMenuItems(menu.relPath, { onOpenFile, onDeleteFile })}
+          items={fileMenuItems(menu.relPath, {
+            onOpenFile,
+            onExportFile,
+            onDeleteFile,
+          })}
           onClose={() => setMenu(null)}
         />
       )}
@@ -112,11 +119,13 @@ function fileMenuItems(
   relPath: string,
   handlers: {
     onOpenFile: (relPath: string) => void;
+    onExportFile: (relPath: string) => void;
     onDeleteFile: (relPath: string) => void;
   }
 ): ContextMenuItem[] {
   return [
     { label: "Open", onClick: () => handlers.onOpenFile(relPath) },
+    { label: "Export…", onClick: () => handlers.onExportFile(relPath) },
     {
       label: "Delete",
       onClick: () => handlers.onDeleteFile(relPath),
@@ -140,17 +149,14 @@ function FileRow({
   onEditSummary: (s: string) => void;
   onToggleHighlight: () => void;
   onDelete: () => void;
-  onContextMenu: (x: number, y: number) => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }) {
   return (
     <div
+      onContextMenu={onContextMenu}
       className={`group flex flex-col gap-px ${
         file.highlighted ? "bg-[#FFFF66] -mx-1 px-1" : ""
       }`}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        onContextMenu(e.clientX, e.clientY);
-      }}
     >
       <div className="flex items-baseline gap-2">
         <button

@@ -17,6 +17,7 @@ type Props = {
   onNewFolder: () => void;
   onNewNoteInFolder: (slug: string) => void;
   onDeleteFolder: (slug: string) => void;
+  onExportFolder: (slug: string) => void;
 };
 
 export function FolderGrid({
@@ -30,12 +31,11 @@ export function FolderGrid({
   onNewFolder,
   onNewNoteInFolder,
   onDeleteFolder,
+  onExportFolder,
 }: Props) {
-  const [menu, setMenu] = useState<{
-    x: number;
-    y: number;
-    slug: string;
-  } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; slug: string } | null>(
+    null
+  );
 
   return (
     <div className="flex flex-wrap py-[18px] gap-2">
@@ -45,10 +45,14 @@ export function FolderGrid({
           folder={f}
           selected={f.slug === openFolder}
           onOpen={() => onOpen(f.slug)}
-          onContextMenu={(x, y) => setMenu({ x, y, slug: f.slug })}
           onRenameName={(name) => onRenameFolder(f.slug, name)}
           onRenameCount={(label) => onRenameCount(f.slug, label)}
           onNewNote={() => onNewNoteInFolder(f.slug)}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setMenu({ x: e.clientX, y: e.clientY, slug: f.slug });
+          }}
         />
       ))}
       <NewFolderTile onClick={onNewFolder} />
@@ -64,6 +68,7 @@ export function FolderGrid({
           items={folderMenuItems(menu.slug, {
             onOpen,
             onNewNote: onNewNoteInFolder,
+            onExportFolder,
             onDelete: onDeleteFolder,
           })}
           onClose={() => setMenu(null)}
@@ -78,12 +83,14 @@ function folderMenuItems(
   handlers: {
     onOpen: (slug: string) => void;
     onNewNote: (slug: string) => void;
+    onExportFolder: (slug: string) => void;
     onDelete: (slug: string) => void;
   }
 ): ContextMenuItem[] {
   return [
     { label: "Open", onClick: () => handlers.onOpen(slug) },
     { label: "New note", onClick: () => handlers.onNewNote(slug) },
+    { label: "Export folder…", onClick: () => handlers.onExportFolder(slug) },
     { label: "Delete", onClick: () => handlers.onDelete(slug), danger: true },
   ];
 }
@@ -92,18 +99,18 @@ function FolderTile({
   folder,
   selected,
   onOpen,
-  onContextMenu,
   onRenameName,
   onRenameCount,
   onNewNote,
+  onContextMenu,
 }: {
   folder: FolderMeta;
   selected: boolean;
   onOpen: () => void;
-  onContextMenu: (x: number, y: number) => void;
   onRenameName: (n: string) => void;
   onRenameCount: (n: string) => void;
   onNewNote: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }) {
   return (
     <div
@@ -113,10 +120,7 @@ function FolderTile({
           : "py-[6px] px-1"
       }`}
       onClick={onOpen}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        onContextMenu(e.clientX, e.clientY);
-      }}
+      onContextMenu={onContextMenu}
     >
       <button
         type="button"

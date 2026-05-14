@@ -2,9 +2,6 @@
 
 import { useEffect, useRef } from "react";
 
-const RAISED =
-  "border border-t-white border-l-white border-b-[#404040] border-r-[#404040]";
-
 export type ContextMenuItem = {
   label: string;
   onClick: () => void;
@@ -22,16 +19,16 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    function onAway(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) onClose();
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
-    window.addEventListener("mousedown", onDown);
+    window.addEventListener("mousedown", onAway);
     window.addEventListener("keydown", onKey);
     return () => {
-      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("mousedown", onAway);
       window.removeEventListener("keydown", onKey);
     };
   }, [onClose]);
@@ -39,21 +36,22 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
   return (
     <div
       ref={ref}
-      className={`fixed z-50 min-w-[140px] bg-[#C0C0C0] ${RAISED} py-1`}
-      style={{ left: x, top: y, boxShadow: "2px 2px 0 #00000055" }}
+      style={{ top: y, left: x }}
+      className="fixed z-[60] bg-[#C0C0C0] border border-t-white border-l-white border-b-[#404040] border-r-[#404040] font-chrome text-[11px] py-1 min-w-[160px]"
     >
-      {items.map((item, i) => (
+      {items.map((it, i) => (
         <button
           key={i}
+          type="button"
           onClick={() => {
-            item.onClick();
+            it.onClick();
             onClose();
           }}
-          className={`w-full text-left px-3 py-[3px] font-chrome text-[11px] leading-[14px] hover:bg-[#000080] hover:text-white ${
-            item.danger ? "text-[#800000]" : "text-black"
+          className={`block w-full text-left px-4 py-[2px] hover:bg-[#000080] hover:text-white ${
+            it.danger ? "text-[#800000]" : "text-black"
           }`}
         >
-          {item.label}
+          {it.label}
         </button>
       ))}
     </div>

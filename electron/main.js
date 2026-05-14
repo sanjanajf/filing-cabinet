@@ -1,6 +1,82 @@
-const { app, BrowserWindow, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
 const path = require("path");
 const net = require("net");
+const os = require("os");
+const fs = require("fs");
+const fsp = require("fs/promises");
+const archiver = require("archiver");
+
+const WRITING_DIR = path.join(os.homedir(), "writing");
+
+function safeRel(rel) {
+  const norm = path.normalize(rel || "");
+  if (!norm || norm.startsWith("..") || path.isAbsolute(norm)) {
+    throw new Error("Invalid path");
+  }
+  return norm;
+}
+
+async function walkMd(dir, base = dir) {
+  const out = [];
+  let entries;
+  try {
+    entries = await fsp.readdir(dir, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const e of entries) {
+    if (e.name.startsWith(".") || e.name.startsWith("_")) continue;
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      out.push(...(await walkMd(full, base)));
+    } else if (e.isFile() && e.name.endsWith(".md")) {
+      out.push(path.relative(base, full));
+    }
+  }
+  return out;
+}
+
+ipcMain.handle("export-document", async (event, args) => {
+  const safe = safeRel(args && args.relPath);
+  const sourcePath = path.join(WRITING_DIR, safe);
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showSaveDialog(win, {
+    defaultPath: path.join(os.homedir(), "Desktop", path.basename(safe)),
+    filters: [{ name: "Markdown", extensions: ["md"] }],
+  });
+  if (result.canceled || !result.filePath) return { ok: false, canceled: true };
+  const data = await fsp.readFile(sourcePath);
+  await fsp.writeFile(result.filePath, data);
+  return { ok: true, path: result.filePath };
+});
+
+ipcMain.handle("export-folder", async (event, args) => {
+  const safe = safeRel(args && args.slug);
+  const sourceDir = path.join(WRITING_DIR, safe);
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showSaveDialog(win, {
+    defaultPath: path.join(os.homedir(), "Desktop", `${path.basename(safe)}.zip`),
+    filters: [{ name: "Zip", extensions: ["zip"] }],
+  });
+  if (result.canceled || !result.filePath) return { ok: false, canceled: true };
+
+  const mdFiles = await walkMd(sourceDir);
+
+  await new Promise((resolve, reject) => {
+    const output = fs.createWriteStream(result.filePath);
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    output.on("close", resolve);
+    output.on("error", reject);
+    archive.on("error", reject);
+    archive.pipe(output);
+    for (const rel of mdFiles) {
+      archive.file(path.join(sourceDir, rel), { name: rel });
+    }
+    archive.finalize();
+  });
+
+  return { ok: true, path: result.filePath, fileCount: mdFiles.length };
+});
 
 // Lock in the app name before requiring Next.js's standalone server, which
 // mutates process.title to "next-server (vX.Y.Z)" and chdirs out of our dir.
@@ -75,6 +151,7 @@ async function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, "preload.js"),
     },
   });
   win.webContents.setWindowOpenHandler(({ url }) => {
