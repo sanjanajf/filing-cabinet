@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FileMeta, FolderMeta } from "@/lib/notes";
 import { InlineEdit } from "./InlineEdit";
+import { ContextMenu } from "./ContextMenu";
 
 type Props = {
   folder: FolderMeta | null;
@@ -15,6 +16,7 @@ type Props = {
   onToggleHighlight: (relPath: string) => void;
   onNewNote: () => void;
   onUpload: (files: FileList) => void;
+  onExportFile: (relPath: string) => void;
 };
 
 export function OpenFolder({
@@ -28,8 +30,12 @@ export function OpenFolder({
   onToggleHighlight,
   onNewNote,
   onUpload,
+  onExportFile,
 }: Props) {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; relPath: string } | null>(
+    null
+  );
   if (!folder) return null;
 
   return (
@@ -55,6 +61,10 @@ export function OpenFolder({
             onRename={(name) => onRenameFile(f.relPath, name)}
             onEditSummary={(s) => onEditSummary(f.relPath, s)}
             onToggleHighlight={() => onToggleHighlight(f.relPath)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setMenu({ x: e.clientX, y: e.clientY, relPath: f.relPath });
+            }}
           />
         ))}
         <div className="pt-[6px] flex flex-col gap-1">
@@ -85,6 +95,19 @@ export function OpenFolder({
           />
         </div>
       </div>
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={[
+            {
+              label: "Export…",
+              onClick: () => onExportFile(menu.relPath),
+            },
+          ]}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   );
 }
@@ -95,15 +118,18 @@ function FileRow({
   onRename,
   onEditSummary,
   onToggleHighlight,
+  onContextMenu,
 }: {
   file: FileMeta;
   onOpen: () => void;
   onRename: (n: string) => void;
   onEditSummary: (s: string) => void;
   onToggleHighlight: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }) {
   return (
     <div
+      onContextMenu={onContextMenu}
       className={`group flex flex-col gap-px ${
         file.highlighted ? "bg-[#FFFF66] -mx-1 px-1" : ""
       }`}

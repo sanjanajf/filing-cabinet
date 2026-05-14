@@ -18,6 +18,7 @@ import { SettingsDialog } from "@/components/SettingsDialog";
 import { SearchDialog } from "@/components/SearchDialog";
 import type { FileMeta, FolderMeta, Meta } from "@/lib/notes";
 import { quoteOfDay } from "@/lib/quotes";
+import { exportDocument, exportFolder, isElectron, tildify } from "@/lib/electron";
 
 type FilesPayload = {
   folders: FolderMeta[];
@@ -58,6 +59,51 @@ export default function Page() {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [outlineVisible, setOutlineVisible] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = useCallback((message: string) => {
+    setToast(message);
+    setTimeout(() => {
+      setToast((t) => (t === message ? null : t));
+    }, 4000);
+  }, []);
+
+  const handleExportFile = useCallback(
+    async (relPath: string) => {
+      if (!isElectron()) {
+        setLoadError("Export is only available in the desktop app");
+        return;
+      }
+      try {
+        const dest = await exportDocument(relPath);
+        if (dest) showToast(`Exported to ${tildify(dest)}`);
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [showToast]
+  );
+
+  const handleExportFolder = useCallback(
+    async (slug: string) => {
+      if (!isElectron()) {
+        setLoadError("Export is only available in the desktop app");
+        return;
+      }
+      try {
+        const result = await exportFolder(slug);
+        if (!result) return;
+        if (result.fileCount === 0) {
+          showToast("Folder is empty");
+        } else {
+          showToast(`Exported to ${tildify(result.path)}`);
+        }
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [showToast]
+  );
 
   const activeFormat = editingFile ? noteFormat : defaultFormat;
 
@@ -452,6 +498,7 @@ export default function Page() {
               onFormatLoaded={setNoteFormat}
               outlineVisible={outlineVisible}
               onOutlineToggle={handleOutlineToggle}
+              onExport={handleExportFile}
             />
           ) : (
             <div className="flex-1 flex flex-col py-5 px-8 gap-[14px] overflow-auto">
@@ -484,6 +531,7 @@ export default function Page() {
                     onRenameCount={handleRenameCount}
                     onNewFolder={handleNewFolder}
                     onNewNoteInFolder={handleNewNoteInFolder}
+                    onExportFolder={handleExportFolder}
                   />
                   <OpenFolder
                     folder={folder}
@@ -496,6 +544,7 @@ export default function Page() {
                     onToggleHighlight={handleToggleHighlight}
                     onNewNote={handleNewNote}
                     onUpload={(fl) => handleUploadFiles(fl, folder?.slug)}
+                    onExportFile={handleExportFile}
                   />
                 </>
               )}
@@ -519,6 +568,11 @@ export default function Page() {
         />
       )}
 
+      {toast && (
+        <div className="absolute bottom-7 right-3 z-50 bg-[#FFFFE0] border border-black px-2 py-1 font-sans text-[11px] text-black shadow-[1px_1px_0_#00000044]">
+          {toast}
+        </div>
+      )}
       <StatusBar
         page={1}
         section={1}
