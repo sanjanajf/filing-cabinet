@@ -18,7 +18,7 @@ import { SettingsDialog } from "@/components/SettingsDialog";
 import { SearchDialog } from "@/components/SearchDialog";
 import type { FileMeta, FolderMeta, Meta } from "@/lib/notes";
 import { quoteOfDay } from "@/lib/quotes";
-import { exportDocument, exportFolder, isElectron, tildify } from "@/lib/electron";
+import { exportDocument, exportFolder } from "@/lib/electron";
 
 type FilesPayload = {
   folders: FolderMeta[];
@@ -70,13 +70,9 @@ export default function Page() {
 
   const handleExportFile = useCallback(
     async (relPath: string) => {
-      if (!isElectron()) {
-        setLoadError("Export is only available in the desktop app");
-        return;
-      }
       try {
-        const dest = await exportDocument(relPath);
-        if (dest) showToast(`Exported to ${tildify(dest)}`);
+        const result = await exportDocument(relPath);
+        if (result.destination) showToast(`Exported to ${result.destination}`);
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : String(err));
       }
@@ -86,17 +82,12 @@ export default function Page() {
 
   const handleExportFolder = useCallback(
     async (slug: string) => {
-      if (!isElectron()) {
-        setLoadError("Export is only available in the desktop app");
-        return;
-      }
       try {
         const result = await exportFolder(slug);
-        if (!result) return;
         if (result.fileCount === 0) {
           showToast("Folder is empty");
-        } else {
-          showToast(`Exported to ${tildify(result.path)}`);
+        } else if (result.destination) {
+          showToast(`Exported to ${result.destination}`);
         }
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : String(err));
