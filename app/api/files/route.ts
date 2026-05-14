@@ -12,19 +12,35 @@ import {
   updateDefaultFormat,
   createFolder,
   createNote,
+  deleteFile,
+  deleteFolder,
+  listDeleted,
+  restoreDeleted,
+  purgeDeleted,
+  emptyTrash,
 } from "@/lib/notes";
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const folder = sp.get("folder");
-  const [folders, meta, stats] = await Promise.all([
+  const [folders, meta, stats, deleted] = await Promise.all([
     listFolders(),
     readMeta(),
     globalStats(),
+    listDeleted(),
   ]);
-  const open = folder ?? meta.openFolder ?? folders[0]?.slug ?? null;
+  const requested = folder ?? meta.openFolder ?? folders[0]?.slug ?? null;
+  const isTrash = requested === "__deleted__";
+  const open = isTrash ? null : requested;
   const files = open ? await listFilesInFolder(open) : [];
-  return NextResponse.json({ folders, files, meta, stats, openFolder: open });
+  return NextResponse.json({
+    folders,
+    files,
+    meta,
+    stats,
+    openFolder: requested,
+    deleted,
+  });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -56,6 +72,16 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: "format required" }, { status: 400 });
       }
       await updateDefaultFormat(body.format);
+    } else if (op === "delete-file") {
+      await deleteFile(body.relPath);
+    } else if (op === "delete-folder") {
+      await deleteFolder(body.slug);
+    } else if (op === "restore") {
+      await restoreDeleted(body.key);
+    } else if (op === "purge") {
+      await purgeDeleted(body.key);
+    } else if (op === "empty-trash") {
+      await emptyTrash();
     } else if (op === "toggle-highlight") {
       const meta = await readMeta();
       const idx = meta.highlights.indexOf(body.relPath);

@@ -10,13 +10,14 @@ import {
   type DocFormat,
 } from "@/components/Win95Chrome";
 import { FolderGrid } from "@/components/FolderGrid";
-import { OpenFolder } from "@/components/OpenFolder";
+import { OpenFolder, TrashView } from "@/components/OpenFolder";
 import { DocHeader } from "@/components/DocHeader";
 import { Editor } from "@/components/Editor";
 import { PlacementConfirm, type Placement } from "@/components/PlacementConfirm";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { SearchDialog } from "@/components/SearchDialog";
-import type { FileMeta, FolderMeta, Meta } from "@/lib/notes";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import type { DeletedEntry, FileMeta, FolderMeta, Meta } from "@/lib/notes";
 import { quoteOfDay } from "@/lib/quotes";
 import { exportDocument, exportFolder, isElectron, tildify } from "@/lib/electron";
 
@@ -26,6 +27,16 @@ type FilesPayload = {
   meta: Meta;
   stats: { folderCount: number; entryCount: number; lineCount: number };
   openFolder: string | null;
+  deleted: DeletedEntry[];
+};
+
+const TRASH_SLUG = "__deleted__";
+
+type ConfirmState = {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void;
 };
 
 function useClock() {
@@ -59,6 +70,7 @@ export default function Page() {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [outlineVisible, setOutlineVisible] = useState(true);
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = useCallback((message: string) => {
@@ -255,6 +267,88 @@ export default function Page() {
     },
     [ping]
   );
+
+  const handleDeleteFile = useCallback(
+    async (relPath: string) => {
+      if (editingFile === relPath) setEditingFile(null);
+      await ping({ op: "delete-file", relPath });
+    },
+    [editingFile, ping]
+  );
+
+  const handleDeleteFolder = useCallback(
+    (slug: string) => {
+      setConfirm({
+        title: "Delete folder",
+        message: `Move "${slug}" and all its files to Recently Deleted?`,
+        confirmLabel: "Delete",
+        onConfirm: async () => {
+          setConfirm(null);
+          const wasOpen = openSlug === slug;
+          if (wasOpen) setOpenSlug(null);
+          if (editingFile && editingFile.startsWith(slug + "/")) {
+            setEditingFile(null);
+          }
+          setSaved(false);
+          try {
+            const res = await fetch("/api/files", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ op: "delete-folder", slug }),
+            });
+            if (!res.ok) {
+              const data = await res.json();
+              throw new Error(data.error || "Delete failed");
+            }
+            await fetchData(wasOpen ? undefined : openSlug ?? undefined);
+            setSaved(true);
+          } catch (err) {
+            setLoadError(String(err));
+          }
+        },
+      });
+    },
+    [editingFile, fetchData, openSlug]
+  );
+
+  const handleOpenTrash = useCallback(() => {
+    setOpenSlug(TRASH_SLUG);
+    setEditingFile(null);
+  }, []);
+
+  const handleRestore = useCallback(
+    async (key: string) => {
+      await ping({ op: "restore", key });
+    },
+    [ping]
+  );
+
+  const handlePurge = useCallback(
+    (key: string) => {
+      setConfirm({
+        title: "Delete permanently",
+        message: `Permanently delete "${key}"? This cannot be undone.`,
+        confirmLabel: "Delete",
+        onConfirm: async () => {
+          setConfirm(null);
+          await ping({ op: "purge", key });
+        },
+      });
+    },
+    [ping]
+  );
+
+  const handleEmptyTrash = useCallback(() => {
+    setConfirm({
+      title: "Empty Trash",
+      message: "Permanently delete everything in Recently Deleted? This cannot be undone.",
+      confirmLabel: "Empty Trash",
+      onConfirm: async () => {
+        setConfirm(null);
+        await ping({ op: "empty-trash" });
+      },
+    });
+  }, [ping]);
 
   const handleEditTitle = useCallback(
     (docTitle: string) => {
@@ -526,26 +620,39 @@ export default function Page() {
                   <FolderGrid
                     folders={data.folders}
                     openFolder={openSlug}
+                    trashCount={data.deleted?.length ?? 0}
                     onOpen={handleOpenFolder}
+                    onOpenTrash={handleOpenTrash}
                     onRenameFolder={handleRenameFolder}
                     onRenameCount={handleRenameCount}
                     onNewFolder={handleNewFolder}
                     onNewNoteInFolder={handleNewNoteInFolder}
+                    onDeleteFolder={handleDeleteFolder}
                     onExportFolder={handleExportFolder}
                   />
-                  <OpenFolder
-                    folder={folder}
-                    files={data.files}
-                    totalLines={totalLinesInOpen}
-                    lastOpenedLabel="2 min ago"
-                    onOpenFile={(rel) => setEditingFile(rel)}
-                    onRenameFile={handleRenameFile}
-                    onEditSummary={handleEditSummary}
-                    onToggleHighlight={handleToggleHighlight}
-                    onNewNote={handleNewNote}
-                    onUpload={(fl) => handleUploadFiles(fl, folder?.slug)}
-                    onExportFile={handleExportFile}
-                  />
+                  {openSlug === TRASH_SLUG ? (
+                    <TrashView
+                      entries={data.deleted ?? []}
+                      onRestore={handleRestore}
+                      onPurge={handlePurge}
+                      onEmptyTrash={handleEmptyTrash}
+                    />
+                  ) : (
+                    <OpenFolder
+                      folder={folder}
+                      files={data.files}
+                      totalLines={totalLinesInOpen}
+                      lastOpenedLabel="2 min ago"
+                      onOpenFile={(rel) => setEditingFile(rel)}
+                      onRenameFile={handleRenameFile}
+                      onEditSummary={handleEditSummary}
+                      onToggleHighlight={handleToggleHighlight}
+                      onDeleteFile={handleDeleteFile}
+                      onNewNote={handleNewNote}
+                      onUpload={(fl) => handleUploadFiles(fl, folder?.slug)}
+                      onExportFile={handleExportFile}
+                    />
+                  )}
                 </>
               )}
             </div>
@@ -555,6 +662,16 @@ export default function Page() {
       </div>
 
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
+
+      {confirm && (
+        <ConfirmDialog
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel={confirm.confirmLabel}
+          onConfirm={confirm.onConfirm}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
 
       {searchOpen && (
         <SearchDialog

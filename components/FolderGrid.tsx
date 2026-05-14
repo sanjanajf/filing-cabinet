@@ -4,26 +4,33 @@ import { useState } from "react";
 import type { FolderMeta } from "@/lib/notes";
 import { InlineEdit } from "./InlineEdit";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
+import { TrashCan } from "./RetroIcons";
 
 type Props = {
   folders: FolderMeta[];
   openFolder: string | null;
+  trashCount: number;
   onOpen: (slug: string) => void;
+  onOpenTrash: () => void;
   onRenameFolder: (slug: string, name: string) => void;
   onRenameCount: (slug: string, label: string) => void;
   onNewFolder: () => void;
   onNewNoteInFolder: (slug: string) => void;
+  onDeleteFolder: (slug: string) => void;
   onExportFolder: (slug: string) => void;
 };
 
 export function FolderGrid({
   folders,
   openFolder,
+  trashCount,
   onOpen,
+  onOpenTrash,
   onRenameFolder,
   onRenameCount,
   onNewFolder,
   onNewNoteInFolder,
+  onDeleteFolder,
   onExportFolder,
 }: Props) {
   const [menu, setMenu] = useState<{ x: number; y: number; slug: string } | null>(
@@ -49,23 +56,43 @@ export function FolderGrid({
         />
       ))}
       <NewFolderTile onClick={onNewFolder} />
+      <TrashTile
+        selected={openFolder === "__deleted__"}
+        count={trashCount}
+        onOpen={onOpenTrash}
+      />
       {menu && (
         <ContextMenu
           x={menu.x}
           y={menu.y}
-          items={
-            [
-              {
-                label: "Export folder…",
-                onClick: () => onExportFolder(menu.slug),
-              },
-            ] satisfies ContextMenuItem[]
-          }
+          items={folderMenuItems(menu.slug, {
+            onOpen,
+            onNewNote: onNewNoteInFolder,
+            onExportFolder,
+            onDelete: onDeleteFolder,
+          })}
           onClose={() => setMenu(null)}
         />
       )}
     </div>
   );
+}
+
+function folderMenuItems(
+  slug: string,
+  handlers: {
+    onOpen: (slug: string) => void;
+    onNewNote: (slug: string) => void;
+    onExportFolder: (slug: string) => void;
+    onDelete: (slug: string) => void;
+  }
+): ContextMenuItem[] {
+  return [
+    { label: "Open", onClick: () => handlers.onOpen(slug) },
+    { label: "New note", onClick: () => handlers.onNewNote(slug) },
+    { label: "Export folder…", onClick: () => handlers.onExportFolder(slug) },
+    { label: "Delete", onClick: () => handlers.onDelete(slug), danger: true },
+  ];
 }
 
 function FolderTile({
@@ -150,5 +177,44 @@ function NewFolderTile({ onClick }: { onClick: () => void }) {
         New folder
       </span>
     </button>
+  );
+}
+
+function TrashTile({
+  selected,
+  count,
+  onOpen,
+}: {
+  selected: boolean;
+  count: number;
+  onOpen: () => void;
+}) {
+  return (
+    <div
+      className={`flex flex-col items-center w-24 gap-1 shrink-0 cursor-pointer ${
+        selected
+          ? "py-1 px-[2px] bg-[#000080] border border-dotted border-white"
+          : "py-[6px] px-1"
+      }`}
+      onClick={onOpen}
+    >
+      <div className="w-16 h-[52px] flex items-center justify-center shrink-0 pixelated">
+        <TrashCan size={44} />
+      </div>
+      <span
+        className={`text-center font-chrome text-[11px] leading-[13px] px-1 ${
+          selected ? "text-white" : "text-black"
+        }`}
+      >
+        Recently Deleted
+      </span>
+      <span
+        className={`font-chrome text-[9px] leading-[12px] px-1 ${
+          selected ? "text-white" : "text-[#808080]"
+        }`}
+      >
+        {count} {count === 1 ? "item" : "items"}
+      </span>
+    </div>
   );
 }

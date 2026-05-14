@@ -5,6 +5,9 @@ import os from "os";
 const WRITING_DIR = path.join(os.homedir(), "writing");
 const LAYOUT_FILE = path.join(WRITING_DIR, "layout.json");
 const META_FILE = path.join(WRITING_DIR, "meta.json");
+const TRASH_DIR = path.join(WRITING_DIR, "_deleted");
+const FOLDER_SENTINEL = ".deleted-folder";
+export const TRASH_SLUG = "__deleted__";
 
 export type NoteMeta = {
   slug: string;
@@ -52,6 +55,15 @@ export type Meta = {
   fileFormats: Record<string, FileFormat>;
   defaultFormat: FileFormat;
   outlineVisible: boolean;
+  deletedAt: Record<string, number>;
+};
+
+export type DeletedEntry = {
+  key: string;
+  kind: "file" | "folder";
+  originalRelPath: string;
+  deletedAt: number;
+  displayName: string;
 };
 
 export const DEFAULT_FILE_FORMAT: FileFormat = {
@@ -72,6 +84,7 @@ const DEFAULT_META: Meta = {
   fileFormats: {},
   defaultFormat: DEFAULT_FILE_FORMAT,
   outlineVisible: true,
+  deletedAt: {},
 };
 
 function safeRel(rel: string): string {
@@ -630,6 +643,201 @@ export async function moveFile(
   await writeMeta(meta);
 
   return finalTarget;
+}
+
+async function allocateTrashKey(base: string): Promise<string> {
+  await fs.mkdir(TRASH_DIR, { recursive: true });
+  let candidate = base;
+  let i = 2;
+  while (i < 10_000) {
+    try {
+      await fs.access(path.join(TRASH_DIR, candidate));
+    } catch {
+      return candidate;
+    }
+    const ext = path.extname(base);
+    const stem = base.slice(0, base.length - ext.length);
+    candidate = `${stem}-${i}${ext}`;
+    i++;
+  }
+  throw new Error("Could not allocate trash key");
+}
+
+function trashKeyForFile(relPath: string): string {
+  const slash = relPath.indexOf("/");
+  if (slash < 0) return `__${relPath}`;
+  const folder = relPath.slice(0, slash);
+  const filename = relPath.slice(slash + 1);
+  return `${folder}__${filename}`;
+}
+
+function parseFileTrashKey(key: string): { folder: string; filename: string } {
+  const sep = key.indexOf("__");
+  if (sep < 0) return { folder: "", filename: key };
+  return { folder: key.slice(0, sep), filename: key.slice(sep + 2) };
+}
+
+export async function deleteFile(relPath: string): Promise<void> {
+  const safe = safeRel(relPath);
+  const fullSrc = path.join(WRITING_DIR, safe);
+  await fs.access(fullSrc);
+  const baseKey = trashKeyForFile(safe);
+  const key = await allocateTrashKey(baseKey);
+  await fs.rename(fullSrc, path.join(TRASH_DIR, key));
+
+  const meta = await readMeta();
+  if (meta.fileSummaries[safe] !== undefined) delete meta.fileSummaries[safe];
+  if (meta.fileFormats[safe] !== undefined) delete meta.fileFormats[safe];
+  const hi = meta.highlights.indexOf(safe);
+  if (hi >= 0) meta.highlights.splice(hi, 1);
+  meta.deletedAt[key] = Date.now();
+  await writeMeta(meta);
+}
+
+export async function deleteFolder(slug: string): Promise<void> {
+  const safe = safeRel(slug);
+  if (safe.includes("/")) throw new Error("Cannot delete nested folder");
+  const fullSrc = path.join(WRITING_DIR, safe);
+  const stat = await fs.stat(fullSrc);
+  if (!stat.isDirectory()) throw new Error("Not a folder");
+  const key = await allocateTrashKey(safe);
+  const fullDest = path.join(TRASH_DIR, key);
+  await fs.rename(fullSrc, fullDest);
+  await fs.writeFile(path.join(fullDest, FOLDER_SENTINEL), "", "utf-8");
+
+  const meta = await readMeta();
+  if (meta.folderLabels[safe] !== undefined) delete meta.folderLabels[safe];
+  if (meta.countLabels[safe] !== undefined) delete meta.countLabels[safe];
+  const prefix = safe + "/";
+  for (const k of Object.keys(meta.fileSummaries)) {
+    if (k.startsWith(prefix)) delete meta.fileSummaries[k];
+  }
+  for (const k of Object.keys(meta.fileFormats)) {
+    if (k.startsWith(prefix)) delete meta.fileFormats[k];
+  }
+  meta.highlights = meta.highlights.filter((h) => !h.startsWith(prefix));
+  if (meta.openFolder === safe) meta.openFolder = null;
+  meta.deletedAt[key] = Date.now();
+  await writeMeta(meta);
+}
+
+function safeTrashKey(key: string): string {
+  if (!key || key.includes("/") || key.includes("\\") || key.includes("..")) {
+    throw new Error("Invalid trash key");
+  }
+  return key;
+}
+
+async function isFolderTrashKey(key: string): Promise<boolean> {
+  try {
+    const st = await fs.stat(path.join(TRASH_DIR, key));
+    return st.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+export async function listDeleted(): Promise<DeletedEntry[]> {
+  const meta = await readMeta();
+  const out: DeletedEntry[] = [];
+  for (const [key, ts] of Object.entries(meta.deletedAt)) {
+    const folder = await isFolderTrashKey(key);
+    if (folder) {
+      out.push({
+        key,
+        kind: "folder",
+        originalRelPath: key,
+        deletedAt: ts,
+        displayName: key,
+      });
+    } else {
+      const { folder: f, filename } = parseFileTrashKey(key);
+      const original = f ? `${f}/${filename}` : filename;
+      out.push({
+        key,
+        kind: "file",
+        originalRelPath: original,
+        deletedAt: ts,
+        displayName: original,
+      });
+    }
+  }
+  out.sort((a, b) => b.deletedAt - a.deletedAt);
+  return out;
+}
+
+async function allocateRestorePath(
+  dir: string,
+  filename: string
+): Promise<string> {
+  const ext = path.extname(filename);
+  const stem = filename.slice(0, filename.length - ext.length);
+  let candidate = filename;
+  let i = 2;
+  while (i < 10_000) {
+    try {
+      await fs.access(path.join(dir, candidate));
+    } catch {
+      return candidate;
+    }
+    candidate = `${stem}-${i}${ext}`;
+    i++;
+  }
+  throw new Error("Could not allocate restore path");
+}
+
+export async function restoreDeleted(key: string): Promise<void> {
+  safeTrashKey(key);
+  const meta = await readMeta();
+  if (!(key in meta.deletedAt)) throw new Error("Not in trash");
+  const fullSrc = path.join(TRASH_DIR, key);
+  const folder = await isFolderTrashKey(key);
+
+  if (folder) {
+    let slug = key;
+    let i = 2;
+    while (i < 10_000) {
+      try {
+        await fs.access(path.join(WRITING_DIR, slug));
+        slug = `${key}-${i}`;
+        i++;
+      } catch {
+        break;
+      }
+    }
+    const sentinel = path.join(fullSrc, FOLDER_SENTINEL);
+    try {
+      await fs.unlink(sentinel);
+    } catch {
+      // sentinel may have been removed already
+    }
+    await fs.rename(fullSrc, path.join(WRITING_DIR, slug));
+  } else {
+    const { folder: f, filename } = parseFileTrashKey(key);
+    const targetDir = path.join(WRITING_DIR, f);
+    await fs.mkdir(targetDir, { recursive: true });
+    const finalName = await allocateRestorePath(targetDir, filename);
+    await fs.rename(fullSrc, path.join(targetDir, finalName));
+  }
+
+  delete meta.deletedAt[key];
+  await writeMeta(meta);
+}
+
+export async function purgeDeleted(key: string): Promise<void> {
+  safeTrashKey(key);
+  const full = path.join(TRASH_DIR, key);
+  await fs.rm(full, { recursive: true, force: true });
+  const meta = await readMeta();
+  delete meta.deletedAt[key];
+  await writeMeta(meta);
+}
+
+export async function emptyTrash(): Promise<void> {
+  await fs.rm(TRASH_DIR, { recursive: true, force: true });
+  const meta = await readMeta();
+  meta.deletedAt = {};
+  await writeMeta(meta);
 }
 
 export async function readLayout(): Promise<Layout> {

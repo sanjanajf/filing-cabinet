@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 export type ContextMenuItem = {
   label: string;
   onClick: () => void;
+  danger?: boolean;
 };
 
 type Props = {
@@ -46,7 +47,9 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
             it.onClick();
             onClose();
           }}
-          className="block w-full text-left px-4 py-[2px] text-black hover:bg-[#000080] hover:text-white"
+          className={`block w-full text-left px-4 py-[2px] hover:bg-[#000080] hover:text-white ${
+            it.danger ? "text-[#800000]" : "text-black"
+          }`}
         >
           {it.label}
         </button>
