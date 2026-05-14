@@ -58,3 +58,47 @@ export function SpinningGlobe({ size = 36 }: { size?: number }) {
   );
 }
 
+export function TrashCan({ size = 52 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      style={PIXEL}
+      aria-hidden
+      className="shrink-0"
+    >
+      {/* Lid handle */}
+      <rect x="6" y="1" width="4" height="1" fill="black" />
+      {/* Lid */}
+      <rect x="2" y="2" width="12" height="2" fill="#C0C0C0" stroke="black" strokeWidth="1" />
+      {/* Can body */}
+      <rect x="3" y="4" width="10" height="11" fill="#C0C0C0" stroke="black" strokeWidth="1" />
+      {/* Vertical ridges */}
+      <rect x="6" y="6" width="1" height="7" fill="black" />
+      <rect x="9" y="6" width="1" height="7" fill="black" />
+      <rect x="12" y="6" width="1" height="7" fill="black" />
+    </svg>
+  );
+}
+
+export function TrashGlyph({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      style={PIXEL}
+      aria-hidden
+    >
+      <rect x="6" y="2" width="4" height="1" fill="currentColor" />
+      <rect x="3" y="3" width="10" height="1" fill="currentColor" />
+      <rect x="4" y="5" width="1" height="9" fill="currentColor" />
+      <rect x="11" y="5" width="1" height="9" fill="currentColor" />
+      <rect x="4" y="14" width="8" height="1" fill="currentColor" />
+      <rect x="6" y="6" width="1" height="7" fill="currentColor" />
+      <rect x="9" y="6" width="1" height="7" fill="currentColor" />
+    </svg>
+  );
+}
+

@@ -1,27 +1,42 @@
 "use client";
 
+import { useState } from "react";
 import type { FolderMeta } from "@/lib/notes";
 import { InlineEdit } from "./InlineEdit";
+import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
+import { TrashCan } from "./RetroIcons";
 
 type Props = {
   folders: FolderMeta[];
   openFolder: string | null;
+  trashCount: number;
   onOpen: (slug: string) => void;
+  onOpenTrash: () => void;
   onRenameFolder: (slug: string, name: string) => void;
   onRenameCount: (slug: string, label: string) => void;
   onNewFolder: () => void;
   onNewNoteInFolder: (slug: string) => void;
+  onDeleteFolder: (slug: string) => void;
 };
 
 export function FolderGrid({
   folders,
   openFolder,
+  trashCount,
   onOpen,
+  onOpenTrash,
   onRenameFolder,
   onRenameCount,
   onNewFolder,
   onNewNoteInFolder,
+  onDeleteFolder,
 }: Props) {
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    slug: string;
+  } | null>(null);
+
   return (
     <div className="flex flex-wrap py-[18px] gap-2">
       {folders.map((f) => (
@@ -30,20 +45,54 @@ export function FolderGrid({
           folder={f}
           selected={f.slug === openFolder}
           onOpen={() => onOpen(f.slug)}
+          onContextMenu={(x, y) => setMenu({ x, y, slug: f.slug })}
           onRenameName={(name) => onRenameFolder(f.slug, name)}
           onRenameCount={(label) => onRenameCount(f.slug, label)}
           onNewNote={() => onNewNoteInFolder(f.slug)}
         />
       ))}
       <NewFolderTile onClick={onNewFolder} />
+      <TrashTile
+        selected={openFolder === "__deleted__"}
+        count={trashCount}
+        onOpen={onOpenTrash}
+      />
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={folderMenuItems(menu.slug, {
+            onOpen,
+            onNewNote: onNewNoteInFolder,
+            onDelete: onDeleteFolder,
+          })}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   );
+}
+
+function folderMenuItems(
+  slug: string,
+  handlers: {
+    onOpen: (slug: string) => void;
+    onNewNote: (slug: string) => void;
+    onDelete: (slug: string) => void;
+  }
+): ContextMenuItem[] {
+  return [
+    { label: "Open", onClick: () => handlers.onOpen(slug) },
+    { label: "New note", onClick: () => handlers.onNewNote(slug) },
+    { label: "Delete", onClick: () => handlers.onDelete(slug), danger: true },
+  ];
 }
 
 function FolderTile({
   folder,
   selected,
   onOpen,
+  onContextMenu,
   onRenameName,
   onRenameCount,
   onNewNote,
@@ -51,6 +100,7 @@ function FolderTile({
   folder: FolderMeta;
   selected: boolean;
   onOpen: () => void;
+  onContextMenu: (x: number, y: number) => void;
   onRenameName: (n: string) => void;
   onRenameCount: (n: string) => void;
   onNewNote: () => void;
@@ -63,6 +113,10 @@ function FolderTile({
           : "py-[6px] px-1"
       }`}
       onClick={onOpen}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContextMenu(e.clientX, e.clientY);
+      }}
     >
       <button
         type="button"
@@ -119,5 +173,44 @@ function NewFolderTile({ onClick }: { onClick: () => void }) {
         New folder
       </span>
     </button>
+  );
+}
+
+function TrashTile({
+  selected,
+  count,
+  onOpen,
+}: {
+  selected: boolean;
+  count: number;
+  onOpen: () => void;
+}) {
+  return (
+    <div
+      className={`flex flex-col items-center w-24 gap-1 shrink-0 cursor-pointer ${
+        selected
+          ? "py-1 px-[2px] bg-[#000080] border border-dotted border-white"
+          : "py-[6px] px-1"
+      }`}
+      onClick={onOpen}
+    >
+      <div className="w-16 h-[52px] flex items-center justify-center shrink-0 pixelated">
+        <TrashCan size={44} />
+      </div>
+      <span
+        className={`text-center font-chrome text-[11px] leading-[13px] px-1 ${
+          selected ? "text-white" : "text-black"
+        }`}
+      >
+        Recently Deleted
+      </span>
+      <span
+        className={`font-chrome text-[9px] leading-[12px] px-1 ${
+          selected ? "text-white" : "text-[#808080]"
+        }`}
+      >
+        {count} {count === 1 ? "item" : "items"}
+      </span>
+    </div>
   );
 }

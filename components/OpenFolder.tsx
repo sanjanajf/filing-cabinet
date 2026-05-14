@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { FileMeta, FolderMeta } from "@/lib/notes";
+import type { DeletedEntry, FileMeta, FolderMeta } from "@/lib/notes";
 import { InlineEdit } from "./InlineEdit";
+import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
+import { TrashGlyph } from "./RetroIcons";
 
 type Props = {
   folder: FolderMeta | null;
@@ -13,6 +15,7 @@ type Props = {
   onRenameFile: (relPath: string, filename: string) => void;
   onEditSummary: (relPath: string, summary: string) => void;
   onToggleHighlight: (relPath: string) => void;
+  onDeleteFile: (relPath: string) => void;
   onNewNote: () => void;
   onUpload: (files: FileList) => void;
 };
@@ -26,10 +29,16 @@ export function OpenFolder({
   onRenameFile,
   onEditSummary,
   onToggleHighlight,
+  onDeleteFile,
   onNewNote,
   onUpload,
 }: Props) {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    relPath: string;
+  } | null>(null);
   if (!folder) return null;
 
   return (
@@ -55,6 +64,8 @@ export function OpenFolder({
             onRename={(name) => onRenameFile(f.relPath, name)}
             onEditSummary={(s) => onEditSummary(f.relPath, s)}
             onToggleHighlight={() => onToggleHighlight(f.relPath)}
+            onDelete={() => onDeleteFile(f.relPath)}
+            onContextMenu={(x, y) => setMenu({ x, y, relPath: f.relPath })}
           />
         ))}
         <div className="pt-[6px] flex flex-col gap-1">
@@ -85,8 +96,33 @@ export function OpenFolder({
           />
         </div>
       </div>
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={fileMenuItems(menu.relPath, { onOpenFile, onDeleteFile })}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   );
+}
+
+function fileMenuItems(
+  relPath: string,
+  handlers: {
+    onOpenFile: (relPath: string) => void;
+    onDeleteFile: (relPath: string) => void;
+  }
+): ContextMenuItem[] {
+  return [
+    { label: "Open", onClick: () => handlers.onOpenFile(relPath) },
+    {
+      label: "Delete",
+      onClick: () => handlers.onDeleteFile(relPath),
+      danger: true,
+    },
+  ];
 }
 
 function FileRow({
@@ -95,18 +131,26 @@ function FileRow({
   onRename,
   onEditSummary,
   onToggleHighlight,
+  onDelete,
+  onContextMenu,
 }: {
   file: FileMeta;
   onOpen: () => void;
   onRename: (n: string) => void;
   onEditSummary: (s: string) => void;
   onToggleHighlight: () => void;
+  onDelete: () => void;
+  onContextMenu: (x: number, y: number) => void;
 }) {
   return (
     <div
       className={`group flex flex-col gap-px ${
         file.highlighted ? "bg-[#FFFF66] -mx-1 px-1" : ""
       }`}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContextMenu(e.clientX, e.clientY);
+      }}
     >
       <div className="flex items-baseline gap-2">
         <button
@@ -139,6 +183,15 @@ function FileRow({
             </>
           )}
         </span>
+        <button
+          type="button"
+          onClick={onDelete}
+          title={`Delete ${file.filename}`}
+          aria-label={`Delete ${file.filename}`}
+          className="ml-1 text-[#808080] hover:text-[#800000] opacity-0 group-hover:opacity-100 focus:opacity-100"
+        >
+          <TrashGlyph size={12} />
+        </button>
       </div>
       <div className="pl-5">
         <InlineEdit
@@ -247,4 +300,100 @@ function FolderGlyph() {
       <span className="absolute top-[2px] left-0 w-4 h-[10px] bg-[#FFE600] border border-black" />
     </span>
   );
+}
+
+type TrashViewProps = {
+  entries: DeletedEntry[];
+  onRestore: (key: string) => void;
+  onPurge: (key: string) => void;
+  onEmptyTrash: () => void;
+};
+
+export function TrashView({
+  entries,
+  onRestore,
+  onPurge,
+  onEmptyTrash,
+}: TrashViewProps) {
+  return (
+    <div className="flex flex-col pt-4 px-1 gap-[10px] border-t border-dashed border-[#808080]">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="font-body font-bold text-black text-[16px] leading-5">
+          Recently Deleted
+        </span>
+        <button
+          onClick={onEmptyTrash}
+          disabled={entries.length === 0}
+          className="font-chrome text-[11px] leading-[14px] text-[#800000] disabled:text-[#808080] hover:underline"
+        >
+          [ Empty Trash ]
+        </button>
+      </div>
+      <div className="flex flex-col pl-5 gap-[10px]">
+        {entries.length === 0 && (
+          <div className="font-body italic text-[12px] text-[#808080]">
+            Trash is empty.
+          </div>
+        )}
+        {entries.map((e) => (
+          <TrashRow
+            key={e.key}
+            entry={e}
+            onRestore={() => onRestore(e.key)}
+            onPurge={() => onPurge(e.key)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TrashRow({
+  entry,
+  onRestore,
+  onPurge,
+}: {
+  entry: DeletedEntry;
+  onRestore: () => void;
+  onPurge: () => void;
+}) {
+  return (
+    <div className="group flex flex-col gap-px">
+      <div className="flex items-baseline gap-2">
+        <span className="font-body font-bold text-[14px] leading-[18px] text-black select-none">
+          —
+        </span>
+        <span className="font-body font-bold text-[14px] leading-[18px] text-black">
+          {entry.displayName}
+        </span>
+        <span className="font-chrome text-[10px] leading-3 text-[#808080]">
+          {entry.kind} · deleted {formatRelative(entry.deletedAt)}
+        </span>
+        <button
+          onClick={onRestore}
+          className="ml-2 font-chrome text-[10px] leading-3 text-[#000080] hover:underline"
+        >
+          [ Restore ]
+        </button>
+        <button
+          onClick={onPurge}
+          className="font-chrome text-[10px] leading-3 text-[#800000] hover:underline"
+        >
+          [ Delete Permanently ]
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function formatRelative(ts: number): string {
+  const diff = Date.now() - ts;
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
 }
