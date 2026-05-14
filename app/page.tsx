@@ -276,6 +276,27 @@ export default function Page() {
     [editingFile, ping]
   );
 
+  const handleMoveFile = useCallback(
+    async (relPath: string, folderSlug: string) => {
+      try {
+        const res = await fetch("/api/files", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ op: "move-file", relPath, folder: folderSlug }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Move failed");
+        if (editingFile === relPath && typeof data.relPath === "string") {
+          setEditingFile(data.relPath);
+        }
+        await fetchData(openSlug ?? undefined);
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [editingFile, fetchData, openSlug]
+  );
+
   const handleDeleteFolder = useCallback(
     (slug: string) => {
       setConfirm({
@@ -419,9 +440,8 @@ export default function Page() {
     return () => window.removeEventListener("keydown", onKey);
   }, [handleNewNote]);
 
-  const uploadFile = useCallback(
-    async (file: File, targetFolder?: string) => {
-      setUploading(true);
+  const uploadOne = useCallback(
+    async (file: File, targetFolder?: string): Promise<Placement | null> => {
       try {
         const form = new FormData();
         form.append("file", file);
@@ -435,26 +455,51 @@ export default function Page() {
           suggestion: data.suggestion,
         };
         setPlacements((p) => [...p, placement]);
-        const placedFolder = placement.suggestion.slug;
-        setOpenSlug(placedFolder);
-        await fetchData(placedFolder);
+        return placement;
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setUploading(false);
+        return null;
       }
     },
-    [fetchData]
+    []
   );
 
   const handleUploadFiles = useCallback(
     async (files: FileList | File[], targetFolder?: string) => {
       const list = Array.from(files);
-      for (const f of list) {
-        await uploadFile(f, targetFolder);
+      if (list.length === 0) return;
+      setUploading(true);
+      try {
+        const CONCURRENCY = 4;
+        const queue = list.slice();
+        let firstPlacedFolder: string | null = null;
+        async function worker() {
+          while (queue.length > 0) {
+            const f = queue.shift();
+            if (!f) return;
+            const placement = await uploadOne(f, targetFolder);
+            if (placement && !firstPlacedFolder) {
+              firstPlacedFolder = placement.suggestion.slug;
+            }
+          }
+        }
+        const workers = Array.from(
+          { length: Math.min(CONCURRENCY, list.length) },
+          () => worker()
+        );
+        await Promise.all(workers);
+        const focus = targetFolder ?? firstPlacedFolder;
+        if (focus) {
+          setOpenSlug(focus);
+          await fetchData(focus);
+        } else {
+          await fetchData(openSlug ?? undefined);
+        }
+      } finally {
+        setUploading(false);
       }
     },
-    [uploadFile]
+    [uploadOne, fetchData, openSlug]
   );
 
   const handleOutlineToggle = useCallback(() => {
@@ -640,6 +685,7 @@ export default function Page() {
                   ) : (
                     <OpenFolder
                       folder={folder}
+                      folders={data.folders ?? []}
                       files={data.files}
                       totalLines={totalLinesInOpen}
                       lastOpenedLabel="2 min ago"
@@ -648,6 +694,7 @@ export default function Page() {
                       onEditSummary={handleEditSummary}
                       onToggleHighlight={handleToggleHighlight}
                       onDeleteFile={handleDeleteFile}
+                      onMoveFile={handleMoveFile}
                       onNewNote={handleNewNote}
                       onUpload={(fl) => handleUploadFiles(fl, folder?.slug)}
                       onExportFile={handleExportFile}
