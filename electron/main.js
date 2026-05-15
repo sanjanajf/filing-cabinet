@@ -4,7 +4,10 @@ const net = require("net");
 const os = require("os");
 const fs = require("fs");
 const fsp = require("fs/promises");
+const https = require("https");
 const archiver = require("archiver");
+
+const UPDATE_REPO = "sanjanajf/filing-cabinet";
 
 const WRITING_DIR = path.join(os.homedir(), "writing");
 
@@ -161,7 +164,78 @@ async function createWindow() {
   win.loadURL(`http://127.0.0.1:${port}`);
 }
 
-app.whenReady().then(createWindow);
+function isNewerVersion(remote, local) {
+  const r = remote.split(".").map((n) => parseInt(n, 10) || 0);
+  const l = local.split(".").map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(r.length, l.length); i++) {
+    const a = r[i] || 0;
+    const b = l[i] || 0;
+    if (a > b) return true;
+    if (a < b) return false;
+  }
+  return false;
+}
+
+function fetchLatestRelease() {
+  return new Promise((resolve, reject) => {
+    const req = https.get(
+      `https://api.github.com/repos/${UPDATE_REPO}/releases/latest`,
+      { headers: { "User-Agent": "Workspace-Updater", Accept: "application/vnd.github+json" } },
+      (res) => {
+        if (res.statusCode !== 200) {
+          res.resume();
+          reject(new Error(`status ${res.statusCode}`));
+          return;
+        }
+        let body = "";
+        res.on("data", (chunk) => (body += chunk));
+        res.on("end", () => {
+          try {
+            resolve(JSON.parse(body));
+          } catch (e) {
+            reject(e);
+          }
+        });
+      },
+    );
+    req.on("error", reject);
+    req.setTimeout(8000, () => req.destroy(new Error("timeout")));
+  });
+}
+
+async function checkForUpdates() {
+  if (!app.isPackaged) return;
+  let release;
+  try {
+    release = await fetchLatestRelease();
+  } catch {
+    return;
+  }
+  const latest = String(release.tag_name || "").replace(/^v/, "");
+  const current = app.getVersion();
+  if (!latest || !isNewerVersion(latest, current)) return;
+  const asset = (release.assets || []).find(
+    (a) => a.name.endsWith(".dmg") && a.name.includes(process.arch),
+  );
+  if (!asset) return;
+  const { response } = await dialog.showMessageBox({
+    type: "info",
+    buttons: ["Download", "Later"],
+    defaultId: 0,
+    cancelId: 1,
+    title: "Update Available",
+    message: `Workspace ${latest} is available`,
+    detail: `You're on ${current}. Click Download, then drag the new app into Applications, replacing the old one.`,
+  });
+  if (response === 0) {
+    shell.openExternal(asset.browser_download_url);
+  }
+}
+
+app.whenReady().then(async () => {
+  await createWindow();
+  checkForUpdates();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
