@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "electron:dev": "rm -rf .next dist && next build && rm -rf .next/standalone/.next/static .next/standalone/public && cp -R .next/static .next/standalone/.next/static && cp -R public .next/standalone/public && electron .",
-    "electron:build": "rm -rf .next dist && next build && rm -rf .next/standalone/.next/static .next/standalone/public && cp -R .next/static .next/standalone/.next/static && cp -R public .next/standalone/public && electron-builder --mac"
+    "electron:build": "rm -rf .next dist && next build && rm -rf .next/standalone/.next/static .next/standalone/public && cp -R .next/static .next/standalone/.next/static && cp -R public .next/standalone/public && electron-builder --mac",
+    "electron:release": "rm -rf .next dist && next build && rm -rf .next/standalone/.next/static .next/standalone/public && cp -R .next/static .next/standalone/.next/static && cp -R public .next/standalone/public && electron-builder --mac --publish always"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.2",
@@ -57,7 +58,16 @@
       ],
       "icon": "build/icon.icns",
       "hardenedRuntime": false,
-      "gatekeeperAssess": false
+      "gatekeeperAssess": false,
+      "identity": null
+    },
+    "dmg": {
+      "artifactName": "Workspace-${version}-${arch}.dmg"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "sanjanajf",
+      "repo": "filing-cabinet"
     }
   }
 }
