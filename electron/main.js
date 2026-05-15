@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, net, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, net: electronNet, shell } = require("electron");
 const path = require("path");
 const net = require("net");
 const os = require("os");
@@ -207,7 +207,7 @@ function downloadUpdate(url, dest) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
     const win = BrowserWindow.getAllWindows()[0];
-    const req = net.request({ url, redirect: "follow" });
+    const req = electronNet.request({ url, redirect: "follow" });
     req.on("response", (res) => {
       if (res.statusCode !== 200) {
         reject(new Error(`HTTP ${res.statusCode}`));
