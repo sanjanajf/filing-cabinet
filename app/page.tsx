@@ -662,19 +662,22 @@ export default function Page() {
                     onEditTitle={handleEditTitle}
                     onClickRoot={() => setOpenSlug(null)}
                   />
-                  <FolderGrid
-                    folders={data.folders}
-                    openFolder={openSlug}
-                    trashCount={data.deleted?.length ?? 0}
-                    onOpen={handleOpenFolder}
-                    onOpenTrash={handleOpenTrash}
-                    onRenameFolder={handleRenameFolder}
-                    onRenameCount={handleRenameCount}
-                    onNewFolder={handleNewFolder}
-                    onNewNoteInFolder={handleNewNoteInFolder}
-                    onDeleteFolder={handleDeleteFolder}
-                    onExportFolder={handleExportFolder}
-                  />
+                  {openSlug === null && (
+                    <FolderGrid
+                      folders={data.folders}
+                      openFolder={openSlug}
+                      trashCount={data.deleted?.length ?? 0}
+                      onOpen={handleOpenFolder}
+                      onOpenTrash={handleOpenTrash}
+                      onRenameFolder={handleRenameFolder}
+                      onRenameCount={handleRenameCount}
+                      onNewFolder={handleNewFolder}
+                      onNewNoteInFolder={handleNewNoteInFolder}
+                      onDeleteFolder={handleDeleteFolder}
+                      onExportFolder={handleExportFolder}
+                      onUploadFiles={(fl) => handleUploadFiles(fl)}
+                    />
+                  )}
                   {openSlug === TRASH_SLUG ? (
                     <TrashView
                       entries={data.deleted ?? []}
