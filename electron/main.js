@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, net, shell } = require("electron");
 const path = require("path");
 const net = require("net");
 const os = require("os");
@@ -203,6 +203,38 @@ function fetchLatestRelease() {
   });
 }
 
+function downloadUpdate(url, dest) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(dest);
+    const win = BrowserWindow.getAllWindows()[0];
+    const req = net.request({ url, redirect: "follow" });
+    req.on("response", (res) => {
+      if (res.statusCode !== 200) {
+        reject(new Error(`HTTP ${res.statusCode}`));
+        return;
+      }
+      const total = Number(res.headers["content-length"]) || 0;
+      let received = 0;
+      res.on("data", (chunk) => {
+        file.write(chunk);
+        received += chunk.length;
+        if (total && win && !win.isDestroyed()) {
+          win.setProgressBar(received / total);
+        }
+      });
+      res.on("end", () => {
+        file.end(() => {
+          if (win && !win.isDestroyed()) win.setProgressBar(-1);
+          resolve();
+        });
+      });
+      res.on("error", reject);
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
+
 async function checkForUpdates() {
   if (!app.isPackaged) return;
   let release;
@@ -220,16 +252,31 @@ async function checkForUpdates() {
   if (!asset) return;
   const { response } = await dialog.showMessageBox({
     type: "info",
-    buttons: ["Download", "Later"],
+    buttons: ["Install", "Later"],
     defaultId: 0,
     cancelId: 1,
     title: "Update Available",
     message: `Workspace ${latest} is available`,
-    detail: `You're on ${current}. Click Download, then drag the new app into Applications, replacing the old one.`,
+    detail: `You're on ${current}. Click Install to download the update.`,
   });
-  if (response === 0) {
-    shell.openExternal(asset.browser_download_url);
+  if (response !== 0) return;
+  const dmgPath = path.join(app.getPath("temp"), asset.name);
+  try {
+    await downloadUpdate(asset.browser_download_url, dmgPath);
+  } catch (e) {
+    dialog.showErrorBox("Download failed", String(e.message || e));
+    return;
   }
+  await shell.openPath(dmgPath);
+  await dialog.showMessageBox({
+    type: "info",
+    buttons: ["Quit Workspace"],
+    defaultId: 0,
+    title: "Drag Workspace to Applications",
+    message: `Finish installing ${latest}`,
+    detail: "In the window that just opened, drag Workspace to Applications and replace the existing app. Then reopen Workspace.",
+  });
+  app.quit();
 }
 
 app.whenReady().then(async () => {
