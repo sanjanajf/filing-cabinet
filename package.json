@@ -67,7 +67,8 @@
     "publish": {
       "provider": "github",
       "owner": "sanjanajf",
-      "repo": "filing-cabinet"
+      "repo": "filing-cabinet",
+      "releaseType": "release"
     }
   }
 }
