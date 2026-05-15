@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { FolderMeta } from "@/lib/notes";
 import { InlineEdit } from "./InlineEdit";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
@@ -18,6 +18,7 @@ type Props = {
   onNewNoteInFolder: (slug: string) => void;
   onDeleteFolder: (slug: string) => void;
   onExportFolder: (slug: string) => void;
+  onUploadFiles: (files: FileList) => void;
 };
 
 export function FolderGrid({
@@ -32,6 +33,7 @@ export function FolderGrid({
   onNewNoteInFolder,
   onDeleteFolder,
   onExportFolder,
+  onUploadFiles,
 }: Props) {
   const [menu, setMenu] = useState<{ x: number; y: number; slug: string } | null>(
     null
@@ -55,6 +57,7 @@ export function FolderGrid({
           }}
         />
       ))}
+      <AutoFileTile onFiles={onUploadFiles} />
       <NewFolderTile onClick={onNewFolder} />
       <TrashTile
         selected={openFolder === "__deleted__"}
@@ -158,6 +161,43 @@ function FolderTile({
         }`}
       />
     </div>
+  );
+}
+
+function AutoFileTile({ onFiles }: { onFiles: (files: FileList) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <button
+      type="button"
+      onClick={() => inputRef.current?.click()}
+      className="flex flex-col items-center w-24 py-[6px] px-1 gap-1 shrink-0"
+      title="Upload files and auto-file into existing folders"
+    >
+      <div className="w-16 h-[52px] relative shrink-0 pixelated">
+        <div className="absolute top-1 left-[2px] w-[26px] h-2 bg-[#FFE600] border-2 border-black" />
+        <div className="absolute top-[10px] left-0 w-16 h-[42px] bg-[#FFE600] border-2 border-black shadow-[2px_2px_0_#00000055] flex items-center justify-center">
+          <span className="font-chrome font-bold text-black text-[18px] leading-none">↓</span>
+        </div>
+        <div className="absolute top-3 left-1 w-14 h-px bg-[#FFFFAA]" />
+      </div>
+      <span className="text-center font-chrome italic text-black text-[11px] leading-[13px]">
+        Auto-file
+      </span>
+      <span className="font-chrome text-[9px] leading-[12px] px-1 text-[#808080]">
+        upload + sort
+      </span>
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = e.target.files;
+          if (files && files.length > 0) onFiles(files);
+          e.target.value = "";
+        }}
+      />
+    </button>
   );
 }
 
