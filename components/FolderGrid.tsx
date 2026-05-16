@@ -6,6 +6,8 @@ import { InlineEdit } from "./InlineEdit";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
 import { TrashCan } from "./RetroIcons";
 
+const FOLDER_DRAG_TYPE = "application/x-workspace-folder";
+
 type Props = {
   folders: FolderMeta[];
   openFolder: string | null;
@@ -18,6 +20,7 @@ type Props = {
   onNewNoteInFolder: (slug: string) => void;
   onDeleteFolder: (slug: string) => void;
   onExportFolder: (slug: string) => void;
+  onReorderFolders: (order: string[]) => void;
   onUploadFiles: (files: FileList) => void;
 };
 
@@ -33,11 +36,29 @@ export function FolderGrid({
   onNewNoteInFolder,
   onDeleteFolder,
   onExportFolder,
+  onReorderFolders,
   onUploadFiles,
 }: Props) {
   const [menu, setMenu] = useState<{ x: number; y: number; slug: string } | null>(
     null
   );
+  const [draggingSlug, setDraggingSlug] = useState<string | null>(null);
+  const [dropTargetSlug, setDropTargetSlug] = useState<string | null>(null);
+
+  function handleDrop(targetSlug: string) {
+    const src = draggingSlug;
+    setDraggingSlug(null);
+    setDropTargetSlug(null);
+    if (!src || src === targetSlug) return;
+    const slugs = folders.map((f) => f.slug);
+    const from = slugs.indexOf(src);
+    if (from === -1) return;
+    slugs.splice(from, 1);
+    const to = slugs.indexOf(targetSlug);
+    if (to === -1) return;
+    slugs.splice(to, 0, src);
+    onReorderFolders(slugs);
+  }
 
   return (
     <div className="flex flex-wrap py-[18px] gap-2">
@@ -46,10 +67,35 @@ export function FolderGrid({
           key={f.slug}
           folder={f}
           selected={f.slug === openFolder}
+          dragging={f.slug === draggingSlug}
+          dropTarget={f.slug === dropTargetSlug && draggingSlug !== null && draggingSlug !== f.slug}
           onOpen={() => onOpen(f.slug)}
           onRenameName={(name) => onRenameFolder(f.slug, name)}
           onRenameCount={(label) => onRenameCount(f.slug, label)}
           onNewNote={() => onNewNoteInFolder(f.slug)}
+          onDragStart={(e) => {
+            e.dataTransfer.setData(FOLDER_DRAG_TYPE, f.slug);
+            e.dataTransfer.effectAllowed = "move";
+            setDraggingSlug(f.slug);
+          }}
+          onDragEnd={() => {
+            setDraggingSlug(null);
+            setDropTargetSlug(null);
+          }}
+          onDragOver={(e) => {
+            if (!e.dataTransfer.types.includes(FOLDER_DRAG_TYPE)) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            if (dropTargetSlug !== f.slug) setDropTargetSlug(f.slug);
+          }}
+          onDragLeave={() => {
+            if (dropTargetSlug === f.slug) setDropTargetSlug(null);
+          }}
+          onDrop={(e) => {
+            if (!e.dataTransfer.types.includes(FOLDER_DRAG_TYPE)) return;
+            e.preventDefault();
+            handleDrop(f.slug);
+          }}
           onContextMenu={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -101,27 +147,49 @@ function folderMenuItems(
 function FolderTile({
   folder,
   selected,
+  dragging,
+  dropTarget,
   onOpen,
   onRenameName,
   onRenameCount,
   onNewNote,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
   onContextMenu,
 }: {
   folder: FolderMeta;
   selected: boolean;
+  dragging: boolean;
+  dropTarget: boolean;
   onOpen: () => void;
   onRenameName: (n: string) => void;
   onRenameCount: (n: string) => void;
   onNewNote: () => void;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragEnd: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
   onContextMenu: (e: React.MouseEvent) => void;
 }) {
+  const base = selected
+    ? "py-1 px-[2px] bg-[#000080] border border-dotted border-white"
+    : dropTarget
+    ? "py-[4px] px-[2px] border-2 border-dashed border-[#000080]"
+    : "py-[6px] px-1";
   return (
     <div
-      className={`group relative flex flex-col items-center w-24 gap-1 shrink-0 cursor-pointer ${
-        selected
-          ? "py-1 px-[2px] bg-[#000080] border border-dotted border-white"
-          : "py-[6px] px-1"
-      }`}
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={`group relative flex flex-col items-center w-24 gap-1 shrink-0 cursor-pointer ${base}`}
+      style={dragging ? { opacity: 0.5 } : undefined}
       onClick={onOpen}
       onContextMenu={onContextMenu}
     >

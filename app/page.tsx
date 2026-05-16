@@ -21,6 +21,16 @@ import { PromptDialog } from "@/components/PromptDialog";
 import type { DeletedEntry, FileMeta, FolderMeta, Meta } from "@/lib/notes";
 import { quoteOfDay } from "@/lib/quotes";
 import { exportDocument, exportFolder, isElectron, tildify } from "@/lib/electron";
+import {
+  playDelete,
+  playEmptyTrash,
+  playFileMove,
+  playFolderClose,
+  playFolderOpen,
+  playFolderReorder,
+  playImportDone,
+  playNewNote,
+} from "@/lib/sounds";
 
 type FilesPayload = {
   folders: FolderMeta[];
@@ -202,6 +212,7 @@ export default function Page() {
 
   const handleOpenFolder = useCallback(
     async (slug: string) => {
+      playFolderOpen();
       setOpenSlug(slug);
       setSaved(false);
       try {
@@ -233,6 +244,31 @@ export default function Page() {
   const handleRenameCount = useCallback(
     (slug: string, label: string) => {
       ping({ op: "count-label", slug, label });
+    },
+    [ping]
+  );
+
+  const handleReorderFolders = useCallback(
+    (order: string[]) => {
+      playFolderReorder();
+      setData((d) => {
+        if (!d) return d;
+        const bySlug = new Map(d.folders.map((f) => [f.slug, f]));
+        const known = new Set(d.folders.map((f) => f.slug));
+        const ordered: FolderMeta[] = [];
+        for (const slug of order) {
+          const f = bySlug.get(slug);
+          if (f) {
+            ordered.push(f);
+            known.delete(slug);
+          }
+        }
+        for (const f of d.folders) {
+          if (known.has(f.slug)) ordered.push(f);
+        }
+        return { ...d, folders: ordered };
+      });
+      ping({ op: "reorder-folders", order });
     },
     [ping]
   );
@@ -274,6 +310,7 @@ export default function Page() {
   const handleDeleteFile = useCallback(
     async (relPath: string) => {
       if (editingFile === relPath) setEditingFile(null);
+      playDelete();
       await ping({ op: "delete-file", relPath });
     },
     [editingFile, ping]
@@ -292,6 +329,7 @@ export default function Page() {
         if (editingFile === relPath && typeof data.relPath === "string") {
           setEditingFile(data.relPath);
         }
+        playFileMove();
         await fetchData(openSlug ?? undefined);
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : String(err));
@@ -313,6 +351,7 @@ export default function Page() {
           if (editingFile && editingFile.startsWith(slug + "/")) {
             setEditingFile(null);
           }
+          playDelete();
           setSaved(false);
           try {
             const res = await fetch("/api/files", {
@@ -369,6 +408,7 @@ export default function Page() {
       confirmLabel: "Empty Trash",
       onConfirm: async () => {
         setConfirm(null);
+        playEmptyTrash();
         await ping({ op: "empty-trash" });
       },
     });
@@ -418,6 +458,7 @@ export default function Page() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Create failed");
+        playNewNote();
         setOpenSlug(slug);
         await fetchData(slug);
         setEditingFile(data.relPath);
@@ -524,6 +565,7 @@ export default function Page() {
         } else {
           await fetchData(openSlug ?? undefined);
         }
+        playImportDone();
       } finally {
         setUploading(false);
       }
@@ -586,6 +628,7 @@ export default function Page() {
 
   const handlePlacementConfirm = useCallback(
     (id: string) => {
+      playFileMove();
       setPlacements((p) => p.filter((x) => x.relPath !== id));
       fetchData(openSlug ?? undefined).catch(() => {});
     },
@@ -691,7 +734,10 @@ export default function Page() {
                     openCrumb={folder?.slug ?? null}
                     stats={data.stats}
                     onEditTitle={handleEditTitle}
-                    onClickRoot={() => setOpenSlug(null)}
+                    onClickRoot={() => {
+                      playFolderClose();
+                      setOpenSlug(null);
+                    }}
                   />
                   {openSlug === null && (
                     <FolderGrid
@@ -706,6 +752,7 @@ export default function Page() {
                       onNewNoteInFolder={handleNewNoteInFolder}
                       onDeleteFolder={handleDeleteFolder}
                       onExportFolder={handleExportFolder}
+                      onReorderFolders={handleReorderFolders}
                       onUploadFiles={(fl) => handleUploadFiles(fl)}
                     />
                   )}

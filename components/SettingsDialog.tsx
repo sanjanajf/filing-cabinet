@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { setSoundsEnabled, soundsEnabled } from "@/lib/sounds";
 
 const RAISED =
   "border border-t-white border-l-white border-b-[#404040] border-r-[#404040]";
@@ -18,6 +19,11 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [sounds, setSounds] = useState(true);
+
+  useEffect(() => {
+    setSounds(soundsEnabled());
+  }, []);
 
   useEffect(() => {
     fetch("/api/config")
@@ -139,6 +145,36 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               Saved to ~/.workspace/config.json
             </div>
           )}
+
+          <div className="border-t border-[#808080] pt-3 mt-1 flex items-center gap-2">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <span
+                className={`w-3 h-3 bg-white flex items-center justify-center ${SUNKEN}`}
+                aria-hidden="true"
+              >
+                {sounds && (
+                  <span className="font-chrome font-bold text-black text-[10px] leading-none">
+                    ✓
+                  </span>
+                )}
+              </span>
+              <input
+                type="checkbox"
+                checked={sounds}
+                onChange={(e) => {
+                  setSounds(e.target.checked);
+                  setSoundsEnabled(e.target.checked);
+                }}
+                className="sr-only"
+              />
+              <span className="font-chrome text-[11px] leading-[14px] text-black">
+                Sounds
+              </span>
+            </label>
+            <span className="font-chrome text-[11px] leading-[14px] text-[#808080]">
+              — soft chimes on folder open, file move, etc.
+            </span>
+          </div>
 
           <div className="flex items-center justify-between pt-1">
             <button

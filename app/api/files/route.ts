@@ -7,6 +7,7 @@ import {
   globalStats,
   renameFolder,
   renameFile,
+  reorderFolders,
   moveFile,
   updateSummary,
   updateDefaultFormat,
@@ -52,6 +53,8 @@ export async function PATCH(req: NextRequest) {
     } else if (op === "rename-file") {
       const next = await renameFile(body.relPath, body.filename);
       return NextResponse.json({ ok: true, relPath: next });
+    } else if (op === "reorder-folders") {
+      await reorderFolders(body.order);
     } else if (op === "move-file") {
       const next = await moveFile(body.relPath, body.folder);
       return NextResponse.json({ ok: true, relPath: next });
