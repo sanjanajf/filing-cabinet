@@ -215,7 +215,8 @@ export async function listFolders(): Promise<FolderMeta[]> {
   const folders: FolderMeta[] = [];
   for (const e of entries) {
     if (!e.isDirectory()) continue;
-    if (e.name.startsWith(".") || e.name.startsWith("_")) continue;
+    if (e.name.startsWith(".")) continue;
+    if (e.name.startsWith("_") && e.name !== "_reflections") continue;
     const inside = await walk(path.join(WRITING_DIR, e.name));
     folders.push({
       slug: e.name,

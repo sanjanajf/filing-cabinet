@@ -99,11 +99,15 @@ export const SIZE_OPTIONS = [10, 12, 14, 16, 18, 20, 24, 28];
 export function Toolbar({
   onNewNote,
   onSettings,
+  onReflect,
+  reflecting,
   format,
   onFormatChange,
 }: {
   onNewNote: () => void;
   onSettings: () => void;
+  onReflect: () => void;
+  reflecting: boolean;
   format: DocFormat;
   onFormatChange?: (next: DocFormat) => void;
 }) {
@@ -161,6 +165,12 @@ export function Toolbar({
           onClick={() => set("underline", !format.underline)}
         />
       </ToolGroup>
+      <Divider />
+      <ToolbarButton
+        onClick={onReflect}
+        label={reflecting ? "thinking…" : "What have I been circling?"}
+        disabled={reflecting}
+      />
       <Divider />
       <ToolbarButton onClick={onSettings} label="Settings..." />
     </div>
@@ -276,14 +286,17 @@ function Select({
 function ToolbarButton({
   label,
   onClick,
+  disabled,
 }: {
   label: string;
   onClick?: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center justify-center py-[3px] px-[10px] h-[22px] bg-[#C0C0C0] text-black font-chrome text-[11px] leading-[14px] cursor-default ${RAISED} active:border-t-[#404040] active:border-l-[#404040] active:border-b-white active:border-r-white`}
+      disabled={disabled}
+      className={`flex items-center justify-center py-[3px] px-[10px] h-[22px] bg-[#C0C0C0] text-black disabled:text-[#808080] disabled:cursor-not-allowed font-chrome text-[11px] leading-[14px] cursor-default ${RAISED} active:border-t-[#404040] active:border-l-[#404040] active:border-b-white active:border-r-white`}
     >
       {label}
     </button>
