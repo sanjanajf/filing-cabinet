@@ -74,6 +74,7 @@ export default function Page() {
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [reflecting, setReflecting] = useState(false);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -428,6 +429,26 @@ export default function Page() {
     [fetchData]
   );
 
+  const handleReflect = useCallback(async () => {
+    if (reflecting) return;
+    setReflecting(true);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/reflect", { method: "POST" });
+      const payload = await res.json();
+      if (!res.ok) {
+        throw new Error(payload.error || "Reflection failed");
+      }
+      await fetchData("_reflections");
+      setOpenSlug("_reflections");
+      setEditingFile(payload.relPath);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setReflecting(false);
+    }
+  }, [fetchData, reflecting]);
+
   const handleNewNote = useCallback(async () => {
     if (!openSlug) return;
     await handleNewNoteInFolder(openSlug);
@@ -627,6 +648,8 @@ export default function Page() {
       <Toolbar
         onNewNote={handleNewNote}
         onSettings={() => setSettingsOpen(true)}
+        onReflect={handleReflect}
+        reflecting={reflecting}
         format={activeFormat}
         onFormatChange={handleFormatChange}
       />
