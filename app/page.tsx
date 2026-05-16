@@ -17,6 +17,7 @@ import { PlacementConfirm, type Placement } from "@/components/PlacementConfirm"
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { SearchDialog } from "@/components/SearchDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { PromptDialog } from "@/components/PromptDialog";
 import type { DeletedEntry, FileMeta, FolderMeta, Meta } from "@/lib/notes";
 import { quoteOfDay } from "@/lib/quotes";
 import { exportDocument, exportFolder, isElectron, tildify } from "@/lib/electron";
@@ -71,6 +72,7 @@ export default function Page() {
   const [uploading, setUploading] = useState(false);
   const [outlineVisible, setOutlineVisible] = useState(true);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = useCallback((message: string) => {
@@ -378,25 +380,31 @@ export default function Page() {
     [ping]
   );
 
-  const handleNewFolder = useCallback(async () => {
-    const name = window.prompt("New folder name:");
-    if (!name) return;
-    setSaved(false);
-    try {
-      const res = await fetch("/api/files", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ op: "new-folder", name }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Create failed");
-      await fetchData(data.slug);
-      setOpenSlug(data.slug);
-      setSaved(true);
-    } catch (err) {
-      setLoadError(String(err));
-    }
-  }, [fetchData]);
+  const handleNewFolder = useCallback(() => {
+    setNewFolderOpen(true);
+  }, []);
+
+  const createFolder = useCallback(
+    async (name: string) => {
+      setNewFolderOpen(false);
+      setSaved(false);
+      try {
+        const res = await fetch("/api/files", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ op: "new-folder", name }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Create failed");
+        await fetchData(data.slug);
+        setOpenSlug(data.slug);
+        setSaved(true);
+      } catch (err) {
+        setLoadError(String(err));
+      }
+    },
+    [fetchData]
+  );
 
   const handleNewNoteInFolder = useCallback(
     async (slug: string) => {
@@ -720,6 +728,16 @@ export default function Page() {
           confirmLabel={confirm.confirmLabel}
           onConfirm={confirm.onConfirm}
           onCancel={() => setConfirm(null)}
+        />
+      )}
+
+      {newFolderOpen && (
+        <PromptDialog
+          title="New folder"
+          label="Folder name:"
+          confirmLabel="Create"
+          onSubmit={createFolder}
+          onCancel={() => setNewFolderOpen(false)}
         />
       )}
 
