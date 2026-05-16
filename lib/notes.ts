@@ -49,6 +49,7 @@ export type Meta = {
   docTitle: string;
   folderLabels: Record<string, string>;
   countLabels: Record<string, string>;
+  folderOrder: string[];
   openFolder: string | null;
   highlights: string[];
   fileSummaries: Record<string, string>;
@@ -78,6 +79,7 @@ const DEFAULT_META: Meta = {
   docTitle: "FILES",
   folderLabels: {},
   countLabels: {},
+  folderOrder: [],
   openFolder: null,
   highlights: [],
   fileSummaries: {},
@@ -225,8 +227,32 @@ export async function listFolders(): Promise<FolderMeta[]> {
       countLabel: meta.countLabels[e.name] ?? `${inside.length} items`,
     });
   }
-  folders.sort((a, b) => a.slug.localeCompare(b.slug));
+  const order = meta.folderOrder ?? [];
+  const orderIndex = new Map(order.map((slug, i) => [slug, i]));
+  folders.sort((a, b) => {
+    const ai = orderIndex.get(a.slug);
+    const bi = orderIndex.get(b.slug);
+    if (ai !== undefined && bi !== undefined) return ai - bi;
+    if (ai !== undefined) return -1;
+    if (bi !== undefined) return 1;
+    return a.slug.localeCompare(b.slug);
+  });
   return folders;
+}
+
+export async function reorderFolders(order: string[]): Promise<void> {
+  if (!Array.isArray(order)) throw new Error("order must be an array");
+  const seen = new Set<string>();
+  const clean: string[] = [];
+  for (const slug of order) {
+    if (typeof slug !== "string") continue;
+    const safe = safeRel(slug);
+    if (safe.includes("/")) continue;
+    if (seen.has(safe)) continue;
+    seen.add(safe);
+    clean.push(safe);
+  }
+  await patchMeta({ folderOrder: clean });
 }
 
 function prettify(slug: string): string {
@@ -709,6 +735,9 @@ export async function deleteFolder(slug: string): Promise<void> {
   const meta = await readMeta();
   if (meta.folderLabels[safe] !== undefined) delete meta.folderLabels[safe];
   if (meta.countLabels[safe] !== undefined) delete meta.countLabels[safe];
+  if (Array.isArray(meta.folderOrder)) {
+    meta.folderOrder = meta.folderOrder.filter((s) => s !== safe);
+  }
   const prefix = safe + "/";
   for (const k of Object.keys(meta.fileSummaries)) {
     if (k.startsWith(prefix)) delete meta.fileSummaries[k];
